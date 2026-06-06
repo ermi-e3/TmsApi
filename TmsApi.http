@@ -4,3 +4,4 @@ GET {{TmsApi_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+Get http://localhost:5022/api/assessments/results
