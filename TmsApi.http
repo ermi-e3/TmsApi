@@ -5,3 +5,14 @@ Accept: application/json
 
 ###
 Get http://localhost:5022/api/assessments/results
+
+
+###
+POST http://localhost:5022/api/enrollments
+Content-Type: application/json
+
+{
+    "studentId": "S-001",
+    "courseCode": "CS-101"
+}
+

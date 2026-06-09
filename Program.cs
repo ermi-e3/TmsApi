@@ -126,6 +126,7 @@
 
 // ####################################
 
+// Exercise 1 Autentication using TrainingAuthHandler
 // using Microsoft.AspNetCore.Authentication;
 
 // var builder = WebApplication.CreateBuilder(args);
@@ -159,9 +160,65 @@
 /// 
 /// 
 
+
+//// Exercise 1B using RequestLoggingMiddleware 
+// using Microsoft.AspNetCore.Authentication;
+
+// var builder = WebApplication.CreateBuilder(args);
+
+// builder.Services
+//     .AddAuthentication("Training")
+//     .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>(
+//         "Training",
+//         null);
+
+// builder.Services.AddAuthorization();
+
+// var app = builder.Build();
+
+// // Required order
+
+// app.UseMiddleware<RequestLoggingMiddleware>();
+
+// app.UseExceptionHandler("/error");
+
+// app.UseHttpsRedirection();
+
+// app.UseRouting();
+
+// app.UseAuthentication();
+
+// app.UseAuthorization();
+
+// app.MapGet("/api/assessments/results", () => Results.Ok(new
+// {
+//     courseCode = "CS-101",
+//     studentId = "S-001",
+//     letterGrade = "A"
+// }))
+// .RequireAuthorization();
+
+// app.Run();
+
+//////////////////////////////////////////////////////////////
+/// 
+
 using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseDefaultServiceProvider(options =>
+{
+options.ValidateScopes = true;
+options.ValidateOnBuild = true;
+});
+
+
+builder.Services
+    .AddOptions<PaymentOptions>()
+    .BindConfiguration("Payments")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services
     .AddAuthentication("Training")
@@ -169,9 +226,17 @@ builder.Services
         "Training",
         null);
 
-builder.Services.AddAuthorization();
+        
+
+builder.Services.AddAuthorization();    
+
+builder.Services.AddSingleton<EnrollmentWorker>();
+builder.Services.AddSingleton<IEnrollmentService, EnrollmentService>();
+
+
 
 var app = builder.Build();
+
 
 // Required order
 
@@ -187,13 +252,22 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-app.MapGet("/api/assessments/results", () => Results.Ok(new
+// app.MapGet("/api/assessments/results", () => Results.Ok(new
+// {
+//     courseCode = "CS-101",
+//     studentId = "S-001",
+//     letterGrade = "A"
+// }))
+// .RequireAuthorization();
+
+app.MapPost("/api/enrollments",
+    async (IEnrollmentService service, EnrollmentRequest request) =>
 {
-    courseCode = "CS-101",
-    studentId = "S-001",
-    letterGrade = "A"
-}))
-.RequireAuthorization();
+    var enrollment = await service.EnrollAsync(
+        request.StudentId,
+        request.CourseCode);
+
+    return Results.Ok(enrollment);
+});
 
 app.Run();
-
