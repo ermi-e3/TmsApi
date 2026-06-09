@@ -1,73 +1,40 @@
 
-///////////////////////////////////////////
-/// after installing rest client
-/// 
 
+/////////////////////////////////////////
+// using JWt
 // var builder = WebApplication.CreateBuilder(args);
 
-// // Register authorization services
+// builder.Services.AddControllers();
+
+// // builder.Services.AddAuthentication();
+// builder.Services.AddAuthentication("Bearer").AddJwtBearer();
+
+// // builder.Services.AddAuthentication();
+
 // builder.Services.AddAuthorization();
 
 // var app = builder.Build();
 
-
-// // TODO1: Register routing
 // app.UseRouting();
 
-// // TODO2: Register authentication and authorization
-// app.UseAuthorization();
 // app.UseAuthentication();
+// app.UseAuthorization();
 
-
-
-
-// // TODO3: Protected minimal API route
 // app.MapGet("/api/assessments/results", () => Results.Ok(new
 // {
-//     courseCode = "CS-101",
-//     studentId = "S-001",
-//     letterGrade = "A"
-// }))
-// .RequireAuthorization();
+//   courseCode = "CS-101",
+//   studentId = "S-001",
+//   letterGrade = "A"
+// })).RequireAuthorization() ;
 
 // app.Run();
-//////////////////////////////////////////////////////////////////
-/// 
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddAuthentication();
-builder.Services.AddAuthorization();
-
-var app = builder.Build();
-
-app.UseRouting();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapGet("/api/assessments/results", () =>
-{
-    return Results.Ok(new
-    {
-        courseCode = "CS-101",
-        studentId = "S-001",
-        letterGrade = "A"
-    });
-})
-.RequireAuthorization();
-
-app.Run();
-
-
-
-
 
 
 
 
 
 /////////////////////////////////////////////////////////////////
-
+// ##################################################
 // using Microsoft.AspNetCore.Authentication.Cookies;
 
 // var builder = WebApplication.CreateBuilder(args);
@@ -103,6 +70,7 @@ app.Run();
 
 // app.Run();
 
+
 //////////////////////////////////////////////////////////////////////////////
 // using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -136,17 +104,10 @@ app.Run();
 // app.UseHttpsRedirection();
 
 
-// // 4. Routing
 // app.UseRouting();
-
-// // 5. Authentication
 // app.UseAuthentication();
-
-// // 6. Authorization
 // app.UseAuthorization();
 
-
-// // Protected endpoint LAST
 // app.MapGet("/api/assessments/results", () => Results.Ok(new
 // {
 //     courseCode = "CS-101",
@@ -156,3 +117,83 @@ app.Run();
 // .RequireAuthorization();
 
 // app.Run();
+
+
+//////////////////////////
+/// 
+/// 
+/// 
+
+// ####################################
+
+// using Microsoft.AspNetCore.Authentication;
+
+// var builder = WebApplication.CreateBuilder(args);
+
+// builder.Services
+//     .AddAuthentication("Training")
+//     .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>(
+//         "Training",
+//         null);
+
+// builder.Services.AddAuthorization();
+
+// var app = builder.Build();
+
+// app.UseRouting();
+
+// app.UseAuthentication();
+// app.UseAuthorization();
+
+// app.MapGet("/api/assessments/results", () => Results.Ok(new
+// {
+//     courseCode = "CS-101",
+//     studentId = "S-001",
+//     letterGrade = "A"
+// }))
+// .RequireAuthorization();
+
+// app.Run();
+
+////////////////////////////
+/// 
+/// 
+
+using Microsoft.AspNetCore.Authentication;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddAuthentication("Training")
+    .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>(
+        "Training",
+        null);
+
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+// Required order
+
+app.UseMiddleware<RequestLoggingMiddleware>();
+
+app.UseExceptionHandler("/error");
+
+app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseAuthentication();
+
+app.UseAuthorization();
+
+app.MapGet("/api/assessments/results", () => Results.Ok(new
+{
+    courseCode = "CS-101",
+    studentId = "S-001",
+    letterGrade = "A"
+}))
+.RequireAuthorization();
+
+app.Run();
+
