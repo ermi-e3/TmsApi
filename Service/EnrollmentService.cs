@@ -1,16 +1,12 @@
-public record EnrollmentRecord(
-string Id,
-string StudentId,
-string CourseCode,
-DateTime EnrolledAt);
+using TmsApi.Models;
+namespace TmsApi.Services;
+// public record EnrollmentRecord(
+// string Id,
+// string StudentId,
+// string CourseCode,
+// DateTime EnrolledAt);
 
-public interface IEnrollmentService
-{
-Task<EnrollmentRecord> EnrollAsync(string studentId, string courseCode);
-Task<EnrollmentRecord?> GetByIdAsync(string id);
-Task<IReadOnlyList<EnrollmentRecord>> GetAllAsync();
-Task<bool> DeleteAsync(string id);
-}
+
 
 
 

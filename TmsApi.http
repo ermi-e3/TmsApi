@@ -7,12 +7,77 @@ Accept: application/json
 Get http://localhost:5022/api/assessments/results
 
 
+
+# Enrollments
+
 ###
-POST http://localhost:5022/api/enrollments
-Content-Type: application/json
+curl http://localhost:5022/api/enrollments
 
-{
-    "studentId": "S-001",
-    "courseCode": "CS-101"
-}
+###
+curl -X POST http://localhost:5022/api/enrollments \
+-H "Content-Type: application/json" \
+-d '{"studentId":"S-001","courseCode":"CS-101"}'
 
+###
+curl http://localhost:5022/api/enrollments/bfde5344
+
+###
+curl -X DELETE http://localhost:5022/api/enrollments/bfde5344
+
+###
+curl http://localhost:5022/api/enrollments/bfde5344
+
+
+###
+Get http://localhost:5022/api/error
+
+
+
+# Course 
+
+###
+curl http://localhost:5022/api/courses
+
+
+###
+curl -X POST http://localhost:5022/api/courses \
+-H "Content-Type: application/json" \
+-d '{
+  "code":"CS-102",
+  "title":"Pyton",
+  "capacity":2
+}'
+
+###
+curl http://localhost:5022/api/courses/CS-102
+
+###
+curl -X DELETE http://localhost:5022/api/courses/CS-102
+
+###
+curl http://localhost:5022/api/courses/CS-102
+
+
+# Student 
+
+###
+curl http://localhost:5022/api/students
+
+###
+curl -X POST http://localhost:5022/api/students \
+-H "Content-Type: application/json" \
+-d '{
+  "id":"S-001",
+  "name":"Daniel Da Lafonte",
+  "age":25,
+  "gpa":3.05
+}'
+
+###
+curl http://localhost:5022/api/students/S-001
+
+###
+curl -X DELETE http://localhost:5022/api/students/S-001
+
+###
+curl http://localhost:5022/api/students/S-001

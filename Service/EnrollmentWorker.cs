@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+namespace TmsApi.Services;
 
 public class EnrollmentWorker(IServiceScopeFactory scopeFactory)
 {
