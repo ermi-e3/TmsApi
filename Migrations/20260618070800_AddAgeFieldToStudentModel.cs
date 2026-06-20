@@ -15,15 +15,14 @@ namespace TmsApi.Migrations
                 table: "Students",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Age",
-                table: "Students");
+            migrationBuilder.DropColumn(name: "Age", table: "Students");
         }
     }
 }
