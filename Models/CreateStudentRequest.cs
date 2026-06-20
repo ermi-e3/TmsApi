@@ -1,7 +1,10 @@
-namespace TmsApi.Models;
+namespace TmsApi.Entities;
 
 public record CreateStudentRequest(
-    string Id,
+    int Id,
+        string RegistrationNumber,
     string Name,
-    int Age,
-    decimal GPA);
+    decimal GPA,
+
+        bool IsActive,
+        ICollection<Enrollment> enrollments);

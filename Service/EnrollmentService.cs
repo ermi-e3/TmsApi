@@ -1,5 +1,7 @@
 using TmsApi.Models;
+using TmsApi.Entities;
 namespace TmsApi.Services;
+
 // public record EnrollmentRecord(
 // string Id,
 // string StudentId,

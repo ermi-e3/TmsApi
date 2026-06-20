@@ -81,3 +81,6 @@ curl -X DELETE http://localhost:5022/api/students/S-001
 
 ###
 curl http://localhost:5022/api/students/S-001
+
+###
+curl http://localhost:5022/api/test/translation-fail

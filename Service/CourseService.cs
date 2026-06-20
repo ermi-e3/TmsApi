@@ -1,5 +1,7 @@
 using TmsApi.Models;
 
+namespace TmsApi.Entities;
+
 public class CourseService : ICourseService
 {
     private readonly Dictionary<string, Course> _store = new();
@@ -12,44 +14,38 @@ public class CourseService : ICourseService
     }
 
     public Task<Course> CreateAsync(
+        int id,
         string code,
         string title,
-        int capacity)
+        int capacity,
+        ICollection<Enrollment> enrollments
+    )
     {
-        _logger.LogInformation(
-            "Course creation request received for {CourseCode}",
-            code);
+        _logger.LogInformation("Course creation request received for {CourseCode}", code);
 
-        _logger.LogInformation(
-            "Current course count: {Count}",
-            _store.Count);
+        _logger.LogInformation("Current course count: {Count}", _store.Count);
 
         if (_store.TryGetValue(code, out var existing))
         {
-            _logger.LogWarning(
-                "Duplicate course creation attempt {CourseCode}",
-                code);
+            _logger.LogWarning("Duplicate course creation attempt {CourseCode}", code);
 
             return Task.FromResult(existing);
         }
 
         var course = new Course
         {
+            Id = id,
             Code = code,
             Title = title,
             Capacity = capacity,
-            EnrolledCount = 0
+            Enrollments = enrollments,
         };
 
         _store[code] = course;
 
-        _logger.LogInformation(
-            "Created course {CourseCode}",
-            code);
+        _logger.LogInformation("Created course {CourseCode}", code);
 
-        _logger.LogInformation(
-            "Course count after insert: {Count}",
-            _store.Count);
+        _logger.LogInformation("Course count after insert: {Count}", _store.Count);
 
         return Task.FromResult(course);
     }
@@ -60,9 +56,7 @@ public class CourseService : ICourseService
 
         if (course is null)
         {
-            _logger.LogWarning(
-                "Course {CourseCode} not found",
-                code);
+            _logger.LogWarning("Course {CourseCode} not found", code);
         }
 
         return Task.FromResult(course);
@@ -70,12 +64,9 @@ public class CourseService : ICourseService
 
     public Task<IReadOnlyList<Course>> GetAllAsync()
     {
-        IReadOnlyList<Course> all =
-            _store.Values.ToList();
+        IReadOnlyList<Course> all = _store.Values.ToList();
 
-        _logger.LogInformation(
-            "Retrieved all courses Count={Count}",
-            all.Count);
+        _logger.LogInformation("Retrieved all courses Count={Count}", all.Count);
 
         return Task.FromResult(all);
     }
@@ -86,15 +77,11 @@ public class CourseService : ICourseService
 
         if (removed)
         {
-            _logger.LogInformation(
-                "Deleted course {CourseCode}",
-                code);
+            _logger.LogInformation("Deleted course {CourseCode}", code);
         }
         else
         {
-            _logger.LogWarning(
-                "Delete failed course {CourseCode} not found",
-                code);
+            _logger.LogWarning("Delete failed course {CourseCode} not found", code);
         }
 
         return Task.FromResult(removed);

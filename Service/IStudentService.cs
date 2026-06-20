@@ -1,12 +1,16 @@
 using TmsApi.Models;
+namespace TmsApi.Entities;
+
 
 public interface IStudentService
 {
     Task<Student> CreateAsync(
-        string id,
+        int id,
+        string registrationNumber,
         string name,
-        int age,
-        decimal gpa);
+        decimal gpa,
+        bool isActive,
+        ICollection<Enrollment> enrollments);
 
     Task<Student?> GetByIdAsync(string id);
 

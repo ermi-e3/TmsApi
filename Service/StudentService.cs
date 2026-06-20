@@ -1,6 +1,8 @@
 using TmsApi.Models;
+namespace TmsApi.Entities;
 
-public class StudentService : IStudentService
+
+public class StudentService :  IStudentService
 {
     private readonly Dictionary<string, Student> _store = new();
 
@@ -12,10 +14,12 @@ public class StudentService : IStudentService
     }
 
     public Task<Student> CreateAsync(
-        string id,
+        int id,
+        string registrationNumber,
         string name,
-        int age,
-        decimal gpa)
+        decimal gpa,
+        bool isActive,
+        ICollection<Enrollment> enrollments)
     {
         _logger.LogInformation(
             "Student creation request received for {StudentId}",
@@ -25,24 +29,27 @@ public class StudentService : IStudentService
             "Current student count: {Count}",
             _store.Count);
 
-        if (_store.TryGetValue(id, out var existing))
-        {
-            _logger.LogWarning(
-                "Duplicate student creation attempt {StudentId}",
-                id);
+        // if (_store.TryGetValue(id, out var existing))
+        // {
+        //     _logger.LogWarning(
+        //         "Duplicate student creation attempt {StudentId}",
+        //         id);
 
-            return Task.FromResult(existing);
-        }
+        //     return Task.FromResult(existing);
+        // }
 
         var student = new Student
         {
             Id = id,
             Name = name,
-            Age = age,
-            GPA = gpa
+            RegistrationNumber = registrationNumber,
+            GPA = gpa,
+            IsActive=isActive,
+            Enrollments = enrollments
+
         };
 
-        _store[id] = student;
+        // _store[id] = student;
 
         _logger.LogInformation(
             "Created student {StudentId}",

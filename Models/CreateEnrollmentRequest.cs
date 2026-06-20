@@ -1,3 +1,5 @@
 namespace TmsApi.Models;
 
-public record CreateEnrollmentRequest(string StudentId, string CourseCode);
+public record CreateEnrollmentRequest(string StudentId, string CourseCode
+
+);

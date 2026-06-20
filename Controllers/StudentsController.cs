@@ -1,13 +1,13 @@
+using TmsApi.Entities;
 using TmsApi.Models;
+
 namespace TmsApi.Services;
 
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/students")]
-public class StudentsController(
-    IStudentService studentService)
-    : ControllerBase
+public class StudentsController(IStudentService studentService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -22,25 +22,22 @@ public class StudentsController(
     {
         var student = await studentService.GetByIdAsync(id);
 
-        return student is not null
-            ? Ok(student)
-            : NotFound();
+        return student is not null ? Ok(student) : NotFound();
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(
-        CreateStudentRequest request)
+    public async Task<IActionResult> Create(CreateStudentRequest request)
     {
         var student = await studentService.CreateAsync(
             request.Id,
+            request.RegistrationNumber,
             request.Name,
-            request.Age,
-            request.GPA);
+            request.GPA,
+            request.IsActive,
+            request.enrollments
+        );
 
-        return CreatedAtAction(
-            nameof(GetById),
-            new { id = student.Id },
-            student);
+        return CreatedAtAction(nameof(GetById), new { id = student.Id }, student);
     }
 
     [HttpDelete("{id}")]
@@ -48,8 +45,6 @@ public class StudentsController(
     {
         var deleted = await studentService.DeleteAsync(id);
 
-        return deleted
-            ? NoContent()
-            : NotFound();
+        return deleted ? NoContent() : NotFound();
     }
 }

@@ -1,4 +1,6 @@
 using TmsApi.Models;
+using TmsApi.Entities;
+
 namespace TmsApi.Services;
 
 using Microsoft.AspNetCore.Mvc;
@@ -28,20 +30,21 @@ public class CoursesController(
             : NotFound();
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Create(
-        CreateCourseRequest request)
-    {
-        var course = await courseService.CreateAsync(
-            request.Code,
-            request.Title,
-            request.Capacity);
+    // [HttpPost]
+    // public async Task<IActionResult> Create(
+    //     CreateCourseRequest request)
+    // {
+    //     var course = await courseService.CreateAsync(
+            
+    //         request.Code,
+    //         request.Title,
+    //         request.Capacity);
 
-        return CreatedAtAction(
-            nameof(GetById),
-            new { code = course.Code },
-            course);
-    }
+    //     return CreatedAtAction(
+    //         nameof(GetById),
+    //         new { code = course.Code },
+    //         course);
+    // }
 
     [HttpDelete("{code}")]
     public async Task<IActionResult> Delete(string code)

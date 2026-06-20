@@ -1,12 +1,17 @@
 
 using TmsApi.Models;
+namespace TmsApi.Entities;
+
+
 
 public interface ICourseService
 {
     Task<Course> CreateAsync(
+        int id,
         string code,
         string title,
-        int capacity);
+        int capacity,
+        ICollection<Enrollment> enrollments);
 
     Task<Course?> GetByIdAsync(string code);
 
