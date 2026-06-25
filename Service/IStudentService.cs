@@ -1,6 +1,6 @@
 using TmsApi.Models;
-namespace TmsApi.Entities;
 
+namespace TmsApi.Entities;
 
 public interface IStudentService
 {
@@ -10,7 +10,8 @@ public interface IStudentService
         string name,
         decimal gpa,
         bool isActive,
-        ICollection<Enrollment> enrollments);
+        ICollection<Enrollment> enrollments
+    );
 
     Task<Student?> GetByIdAsync(string id);
 

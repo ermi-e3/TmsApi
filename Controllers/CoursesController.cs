@@ -1,17 +1,39 @@
-using TmsApi.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TmsApi.Data;
 using TmsApi.Entities;
+using TmsApi.Models;
 
 namespace TmsApi.Services;
 
-using Microsoft.AspNetCore.Mvc;
-
-
 [ApiController]
 [Route("api/courses")]
-public class CoursesController(
-    ICourseService courseService)
-    : ControllerBase
+public class CoursesController(ICourseService courseService, TmsDbContext context) : ControllerBase
 {
+    private readonly TmsDbContext _context = context;
+
+    [HttpGet("top5-courses")]
+    public async Task<IActionResult> GetTopCourses(CancellationToken cancellationToken)
+    {
+        var result = await _context
+            .Courses.Select(c => new { c.Title, EnrollmentCount = c.Enrollments.Count })
+            .OrderByDescending(x => x.EnrollmentCount)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        return Ok(result);
+    }
+
+    // [HttpGet("honor-students-count")]
+    // public async Task<IActionResult> GetHonorStudentsCount(CancellationToken cancellationToken)
+    // {
+    //     var count = await _context
+    //         .Students.Where(s => s.IsActive && s.GPA >= 3.0m)
+    //         .CountAsync(cancellationToken);
+
+    //     return Ok(count);
+    // }
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -25,9 +47,7 @@ public class CoursesController(
     {
         var course = await courseService.GetByIdAsync(code);
 
-        return course is not null
-            ? Ok(course)
-            : NotFound();
+        return course is not null ? Ok(course) : NotFound();
     }
 
     // [HttpPost]
@@ -35,7 +55,7 @@ public class CoursesController(
     //     CreateCourseRequest request)
     // {
     //     var course = await courseService.CreateAsync(
-            
+
     //         request.Code,
     //         request.Title,
     //         request.Capacity);
@@ -51,8 +71,6 @@ public class CoursesController(
     {
         var deleted = await courseService.DeleteAsync(code);
 
-        return deleted
-            ? NoContent()
-            : NotFound();
+        return deleted ? NoContent() : NotFound();
     }
 }

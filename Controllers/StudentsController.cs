@@ -1,14 +1,33 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TmsApi.Data;
 using TmsApi.Entities;
 using TmsApi.Models;
 
 namespace TmsApi.Services;
 
-using Microsoft.AspNetCore.Mvc;
-
 [ApiController]
 [Route("api/students")]
-public class StudentsController(IStudentService studentService) : ControllerBase
+public class StudentsController(IStudentService studentService, TmsDbContext context)
+    : ControllerBase
 {
+    private readonly TmsDbContext _context = context;
+
+    [HttpGet("pageStudents")]
+    public async Task<IActionResult> GetStudents(CancellationToken cancellationToken = default)
+    {
+        const int pageSize = 5,
+            pageNumber = 1;
+
+        var students = await _context
+            .Students.OrderBy(s => s.Name)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return Ok(students);
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {

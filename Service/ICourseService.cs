@@ -1,8 +1,6 @@
-
 using TmsApi.Models;
+
 namespace TmsApi.Entities;
-
-
 
 public interface ICourseService
 {
@@ -11,7 +9,8 @@ public interface ICourseService
         string code,
         string title,
         int capacity,
-        ICollection<Enrollment> enrollments);
+        ICollection<Enrollment> enrollments
+    );
 
     Task<Course?> GetByIdAsync(string code);
 

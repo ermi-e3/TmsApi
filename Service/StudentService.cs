@@ -1,8 +1,8 @@
 using TmsApi.Models;
+
 namespace TmsApi.Entities;
 
-
-public class StudentService :  IStudentService
+public class StudentService : IStudentService
 {
     private readonly Dictionary<string, Student> _store = new();
 
@@ -19,15 +19,12 @@ public class StudentService :  IStudentService
         string name,
         decimal gpa,
         bool isActive,
-        ICollection<Enrollment> enrollments)
+        ICollection<Enrollment> enrollments
+    )
     {
-        _logger.LogInformation(
-            "Student creation request received for {StudentId}",
-            id);
+        _logger.LogInformation("Student creation request received for {StudentId}", id);
 
-        _logger.LogInformation(
-            "Current student count: {Count}",
-            _store.Count);
+        _logger.LogInformation("Current student count: {Count}", _store.Count);
 
         // if (_store.TryGetValue(id, out var existing))
         // {
@@ -44,20 +41,15 @@ public class StudentService :  IStudentService
             Name = name,
             RegistrationNumber = registrationNumber,
             GPA = gpa,
-            IsActive=isActive,
-            Enrollments = enrollments
-
+            IsActive = isActive,
+            Enrollments = enrollments,
         };
 
         // _store[id] = student;
 
-        _logger.LogInformation(
-            "Created student {StudentId}",
-            id);
+        _logger.LogInformation("Created student {StudentId}", id);
 
-        _logger.LogInformation(
-            "Student count after insert: {Count}",
-            _store.Count);
+        _logger.LogInformation("Student count after insert: {Count}", _store.Count);
 
         return Task.FromResult(student);
     }
@@ -68,9 +60,7 @@ public class StudentService :  IStudentService
 
         if (student is null)
         {
-            _logger.LogWarning(
-                "Student {StudentId} not found",
-                id);
+            _logger.LogWarning("Student {StudentId} not found", id);
         }
 
         return Task.FromResult(student);
@@ -78,12 +68,9 @@ public class StudentService :  IStudentService
 
     public Task<IReadOnlyList<Student>> GetAllAsync()
     {
-        IReadOnlyList<Student> all =
-            _store.Values.ToList();
+        IReadOnlyList<Student> all = _store.Values.ToList();
 
-        _logger.LogInformation(
-            "Retrieved all students Count={Count}",
-            all.Count);
+        _logger.LogInformation("Retrieved all students Count={Count}", all.Count);
 
         return Task.FromResult(all);
     }
@@ -94,15 +81,11 @@ public class StudentService :  IStudentService
 
         if (removed)
         {
-            _logger.LogInformation(
-                "Deleted student {StudentId}",
-                id);
+            _logger.LogInformation("Deleted student {StudentId}", id);
         }
         else
         {
-            _logger.LogWarning(
-                "Delete failed student {StudentId} not found",
-                id);
+            _logger.LogWarning("Delete failed student {StudentId} not found", id);
         }
 
         return Task.FromResult(removed);
