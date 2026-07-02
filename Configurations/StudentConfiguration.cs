@@ -19,5 +19,9 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
         builder.Property(s => s.GPA).HasPrecision(3, 2);
 
         builder.Property(s => s.IsActive).IsRequired();
+
+        builder.HasQueryFilter(s => !s.IsDeleted);
+
+        builder.Property<DateTime>("LastUpdated").HasDefaultValueSql("NOW()").IsConcurrencyToken();
     }
 }

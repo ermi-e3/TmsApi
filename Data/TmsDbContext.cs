@@ -30,4 +30,43 @@ public class TmsDbContext(DbContextOptions<TmsDbContext> options) : DbContext(op
 
         base.OnModelCreating(modelBuilder);
     }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) // this method comes from DbContext and replace the parent implementation with my own version.
+    {
+        //         EntityEntry
+        //         ├── Entity
+        //         ├── State
+        //         ├── OriginalValues
+        //         ├── CurrentValues
+        //         └── Metadata
+        // state
+        //   ├──Added
+        //      Modified
+        //      Deleted
+        //      Unchanged
+        //      Detached
+
+        //
+        //     foreach (var entry in ChangeTracker.Entries<Student>()) // EF Core watches every entity it loads: ChangeTracker
+        //     // chnge tracker track student entity
+        //     {
+        //         if (entry.State == EntityState.Added || entry.State == EntityState.Modified) //this will check if the student entity has add new data or update
+        //         {
+        //             entry.Property("LastUpdated").CurrentValue = DateTime.UtcNow;
+        //         }
+        //     }
+
+        //     return await base.SaveChangesAsync(cancellationToken);
+        // }
+
+        foreach (var entry in ChangeTracker.Entries<Student>())
+        {
+            if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+            {
+                entry.Property("LastUpdated").CurrentValue = DateTime.UtcNow;
+            }
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -3,6 +3,7 @@ using TmsApi.Models;
 namespace TmsApi.Services;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
 
 [ApiController]
@@ -11,6 +12,18 @@ public class EnrollmentsController(IEnrollmentService enrollmentService, TmsDbCo
     : ControllerBase
 {
     private readonly TmsDbContext _context = context;
+
+    [HttpPost("archive-old")]
+    public async Task<IActionResult> ArchiveOldEnrollments()
+    {
+        var cutoff = DateTime.UtcNow.AddYears(-1);
+
+        await context
+            .Enrollments.Where(e => e.EnrolledAt < cutoff)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.IsArchived, true));
+
+        return Ok();
+    }
 
     // GET/api/enrollments returns all enrollment records
     [HttpGet]
