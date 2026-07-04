@@ -41,10 +41,13 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<EnrollmentWorker>();
 
 //BUG: make it work with scoped
-builder.Services.AddSingleton<IEnrollmentService, EnrollmentService>();
+// builder.Services.AddSingleton<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 builder.Services.AddSingleton<IStudentService, StudentService>();
-builder.Services.AddSingleton<ICourseService, CourseService>();
+
+// builder.Services.AddSingleton<ICourseService, CourseService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -169,19 +172,19 @@ using (var scope = app.Services.CreateScope())
             {
                 Code = "CS-101",
                 Title = "Introduction to ComputerScience",
-                Capacity = 30,
+                MaxCapacity = 30,
             },
             new()
             {
                 Code = "CS-201",
                 Title = "Data Structures and Algorithms",
-                Capacity = 25,
+                MaxCapacity = 25,
             },
             new()
             {
                 Code = "MAT-101",
                 Title = "Calculus I",
-                Capacity = 40,
+                MaxCapacity = 40,
             },
         };
 

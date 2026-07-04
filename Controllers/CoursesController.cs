@@ -1,76 +1,43 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
+using TmsApi.Dtos;
 using TmsApi.Entities;
-using TmsApi.Models;
+using TmsApi.Services;
 
-namespace TmsApi.Services;
+namespace TmsApi.Controllers;
 
 [ApiController]
 [Route("api/courses")]
-public class CoursesController(ICourseService courseService, TmsDbContext context) : ControllerBase
+public class CoursesController(ICourseService courseService) : ControllerBase
 {
-    private readonly TmsDbContext _context = context;
-
-    [HttpGet("top5-courses")]
-    public async Task<IActionResult> GetTopCourses(CancellationToken cancellationToken)
+    [HttpGet("{id:int}", Name = nameof(GetCourseById))]
+    public async Task<IActionResult> GetCourseById(int id, CancellationToken ct)
     {
-        var result = await _context
-            .Courses.Select(c => new { c.Title, EnrollmentCount = c.Enrollments.Count })
-            .OrderByDescending(x => x.EnrollmentCount)
-            .Take(5)
-            .ToListAsync(cancellationToken);
-
-        return Ok(result);
-    }
-
-    // [HttpGet("honor-students-count")]
-    // public async Task<IActionResult> GetHonorStudentsCount(CancellationToken cancellationToken)
-    // {
-    //     var count = await _context
-    //         .Students.Where(s => s.IsActive && s.GPA >= 3.0m)
-    //         .CountAsync(cancellationToken);
-
-    //     return Ok(count);
-    // }
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var courses = await courseService.GetAllAsync();
-
-        return Ok(courses);
-    }
-
-    [HttpGet("{code}")]
-    public async Task<IActionResult> GetById(string code)
-    {
-        var course = await courseService.GetByIdAsync(code);
-
+        var course = await courseService.GetByIdAsync(id, ct);
         return course is not null ? Ok(course) : NotFound();
     }
 
-    // [HttpPost]
-    // public async Task<IActionResult> Create(
-    //     CreateCourseRequest request)
-    // {
-    //     var course = await courseService.CreateAsync(
-
-    //         request.Code,
-    //         request.Title,
-    //         request.Capacity);
-
-    //     return CreatedAtAction(
-    //         nameof(GetById),
-    //         new { code = course.Code },
-    //         course);
-    // }
-
-    [HttpDelete("{code}")]
-    public async Task<IActionResult> Delete(string code)
+    [HttpPost]
+    public async Task<IActionResult> CreateCourse(CreateCourseRequest request, CancellationToken ct)
     {
-        var deleted = await courseService.DeleteAsync(code);
+        // var result = await courseService.CreateAsync(request, ct);
+        // return CreatedAtAction(nameof(GetCourseById), new { id = result.Id }, result);
 
-        return deleted ? NoContent() : NotFound();
+        if (await courseService.CodeExistsAsync(request.Code, ct))
+        {
+            return Conflict(
+                new ProblemDetails
+                {
+                    Title = "Course code already exists",
+                    Detail = $"A course with code '{request.Code}' is already registered.",
+                    Status = StatusCodes.Status409Conflict,
+                }
+            );
+        }
+
+        var result = await courseService.CreateAsync(request, ct);
+
+        return CreatedAtAction(nameof(GetCourseById), new { id = result.Id }, result);
     }
 }
