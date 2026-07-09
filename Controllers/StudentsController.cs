@@ -11,8 +11,6 @@ namespace TmsApi.Services;
 public class StudentsController(IStudentService studentService, TmsDbContext context)
     : ControllerBase
 {
-    private readonly TmsDbContext _context = context;
-
     [HttpGet("all-student-deleted")]
     public async Task<IActionResult> GetAllStudents()
     {
@@ -20,7 +18,6 @@ public class StudentsController(IStudentService studentService, TmsDbContext con
 
         return Ok(students);
     }
-
 
     [HttpGet("studentCount")]
     public async Task<IActionResult> GetStudentsCount(CancellationToken cancellationToken = default)
@@ -70,7 +67,7 @@ public class StudentsController(IStudentService studentService, TmsDbContext con
         const int pageSize = 5,
             pageNumber = 1;
 
-        var students = await _context
+        var students = await context
             .Students.OrderBy(s => s.Name)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
