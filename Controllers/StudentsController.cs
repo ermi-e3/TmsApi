@@ -52,6 +52,7 @@ public class StudentsController(IStudentService studentService, TmsDbContext con
         ////////////////////////////////////////////////////////////////////////////////////////
 
         // FIX: using include
+        // BUG: this throw JSON serialization error
         // var students = await context
         //     .Students.AsNoTracking()
         //     .Include(s => s.Enrollments)

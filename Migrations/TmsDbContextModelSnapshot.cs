@@ -47,7 +47,7 @@ namespace TmsApi.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Assessment");
+                    b.ToTable("Assessment", (string)null);
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Certificate", b =>
@@ -77,7 +77,7 @@ namespace TmsApi.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("Certificate");
+                    b.ToTable("Certificate", (string)null);
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Course", b =>
@@ -106,7 +106,7 @@ namespace TmsApi.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Courses");
+                    b.ToTable("Courses", (string)null);
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Enrollment", b =>
@@ -142,7 +142,7 @@ namespace TmsApi.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("Enrollments");
+                    b.ToTable("Enrollments", (string)null);
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Student", b =>
@@ -187,7 +187,7 @@ namespace TmsApi.Migrations
                     b.HasIndex("RegistrationNumber")
                         .IsUnique();
 
-                    b.ToTable("Students");
+                    b.ToTable("Students", (string)null);
                 });
 
             modelBuilder.Entity("TmsApi.Entities.Assessment", b =>

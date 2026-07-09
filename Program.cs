@@ -3,15 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using TmsApi.Data;
 using TmsApi.Entities;
+using TmsApi.Filters;
 using TmsApi.Models;
+using TmsApi.Persistence;
 using TmsApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Register TmsDbContext scoped for incoming HTTP requests
-// builder.Services.AddDbContext<TmsDbContext>(options =>
-//     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
-// );
 
 builder.Services.AddDbContext<TmsDbContext>(options =>
     options
@@ -24,6 +21,11 @@ builder.Host.UseDefaultServiceProvider(options =>
 {
     options.ValidateScopes = true;
     options.ValidateOnBuild = true;
+});
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<AuditLogFilter>();
 });
 
 builder.Services.AddControllers();
@@ -42,6 +44,7 @@ builder.Services.AddSingleton<EnrollmentWorker>();
 
 //BUG: make it work with scoped
 // builder.Services.AddSingleton<IEnrollmentService, EnrollmentService>();
+// FIX:
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 builder.Services.AddSingleton<IStudentService, StudentService>();
@@ -73,6 +76,11 @@ if (app.Environment.IsDevelopment())
     // Scalar
     app.MapOpenApi();
     app.MapScalarApiReference();
+
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
+
+    await DataSeeder.SeedAsync(context);
 }
 else
 {
@@ -92,32 +100,6 @@ app.UseRouting();
 app.UseAuthentication();
 
 app.UseAuthorization();
-
-// app.MapGet("/api/assessments/results", () => Results.Ok(new
-// {
-//     courseCode = "CS-101",
-//     studentId = "S-001",
-//     letterGrade = "A"
-// }))
-// .RequireAuthorization();
-
-// app.MapPost("/api/enrollments",
-//     async (IEnrollmentService service, EnrollmentRequest request) =>
-// {
-//     var enrollment = await service.EnrollAsync(
-//         request.StudentId,
-//         request.CourseCode);
-
-//     return Results.Ok(enrollment);
-// });
-
-// app.MapGet(
-//     "/api/error",
-//     () =>
-//     {
-//         throw new InvalidOperationException("This is a test exception");
-//     }
-// );
 
 // Seed test data at startup
 using (var scope = app.Services.CreateScope())
