@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using TmsApi.Dtos;
 using TmsApi.Services;
 
-namespace Tms.Api.Controllers;
+namespace TmsApi.Controllers;
 
 [ApiController]
 [Route("api/courses/{courseId:int}/enrollments")]
@@ -11,6 +11,25 @@ public class EnrollmentsController(
     IEnrollmentService enrollmentService
 ) : ControllerBase
 {
+   
+
+    [HttpGet(Name = "ListCourseEnrollments")]
+    public async Task<IActionResult> GetEnrollments(int courseId, CancellationToken ct)
+    {
+        var course = await courseService.GetByIdAsync(courseId, ct);
+
+        if (course is null)
+        {
+            return NotFound();
+        }
+
+        var enrollments = await enrollmentService.GetByCourseAsync(courseId, ct);
+
+        return Ok(enrollments);
+    }
+
+    ////////////////////////////////////////////////////////
+
     [HttpGet("{id:int}", Name = nameof(GetEnrollment))]
     public async Task<IActionResult> GetEnrollment(int courseId, int id, CancellationToken ct)
     {
