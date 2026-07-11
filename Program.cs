@@ -28,7 +28,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<AuditLogFilter>();
 });
 
-builder.Services.AddControllers();
+// builder.Services.AddControllers();
 
 builder.Services.AddOpenApi(); // Required before MapOpenApi() will work
 
@@ -40,7 +40,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddSingleton<EnrollmentWorker>();
+// builder.Services.AddSingleton<EnrollmentWorker>();
 
 //BUG: make it work with scoped
 // builder.Services.AddSingleton<IEnrollmentService, EnrollmentService>();

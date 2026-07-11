@@ -1,3 +1,4 @@
+using TmsApi.Dtos;
 using TmsApi.Models;
 
 namespace TmsApi.Entities;
@@ -15,7 +16,7 @@ public interface IStudentService
 
     Task<Student?> GetByIdAsync(string id);
 
-    Task<IReadOnlyList<Student>> GetAllAsync();
+    Task<IReadOnlyList<Student>> GetAllAsync(PagedRequest request, CancellationToken ct);
 
     Task<bool> DeleteAsync(string id);
 }

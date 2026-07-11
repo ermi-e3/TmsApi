@@ -5,9 +5,7 @@ public class RequestLoggingMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestLoggingMiddleware> _logger;
 
-    public RequestLoggingMiddleware(
-        RequestDelegate next,
-        ILogger<RequestLoggingMiddleware> logger)
+    public RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
     {
         _next = next;
         _logger = logger;
@@ -15,11 +13,9 @@ public class RequestLoggingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var correlationId = Guid.NewGuid()
-            .ToString("N")[..8];
+        var correlationId = Guid.NewGuid().ToString("N")[..8];
 
-        context.Response.Headers["X-Correlation-Id"] =
-            correlationId;
+        context.Response.Headers["X-Correlation-Id"] = correlationId;
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -27,7 +23,8 @@ public class RequestLoggingMiddleware
             "Incoming Request => Method: {Method}, Path: {Path}, CorrelationId: {CorrelationId}",
             context.Request.Method,
             context.Request.Path,
-            correlationId);
+            correlationId
+        );
 
         await _next(context);
 
@@ -37,6 +34,7 @@ public class RequestLoggingMiddleware
             "Outgoing Response => StatusCode: {StatusCode}, ElapsedMs: {ElapsedMs}, CorrelationId: {CorrelationId}",
             context.Response.StatusCode,
             stopwatch.ElapsedMilliseconds,
-            correlationId);
+            correlationId
+        );
     }
 }

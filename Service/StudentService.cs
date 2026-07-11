@@ -1,3 +1,4 @@
+using TmsApi.Dtos;
 using TmsApi.Models;
 
 namespace TmsApi.Entities;
@@ -66,7 +67,7 @@ public class StudentService : IStudentService
         return Task.FromResult(student);
     }
 
-    public Task<IReadOnlyList<Student>> GetAllAsync()
+    public Task<IReadOnlyList<Student>> GetAllAsync(PagedRequest request, CancellationToken ct)
     {
         IReadOnlyList<Student> all = _store.Values.ToList();
 

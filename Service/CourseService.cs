@@ -119,7 +119,5 @@ public class CourseService(TmsDbContext context, ILogger<CourseService> logger) 
             Page = request.Page,
             PageSize = request.PageSize,
         };
-
-        // throw new NotImplementedException();
     }
 }

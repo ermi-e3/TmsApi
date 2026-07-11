@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
+using TmsApi.Dtos;
 using TmsApi.Entities;
 using TmsApi.Models;
 
@@ -77,9 +78,9 @@ public class StudentsController(IStudentService studentService, TmsDbContext con
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] PagedRequest request, CancellationToken ct)
     {
-        var students = await studentService.GetAllAsync();
+        var students = await studentService.GetAllAsync(request, ct);
 
         return Ok(students);
     }
