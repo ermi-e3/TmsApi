@@ -47,7 +47,7 @@ builder.Services.AddAuthorization();
 // FIX:
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
-builder.Services.AddSingleton<IStudentService, StudentService>();
+builder.Services.AddScoped<IStudentService, StudentService>();
 
 // builder.Services.AddSingleton<ICourseService, CourseService>();
 builder.Services.AddScoped<ICourseService, CourseService>();

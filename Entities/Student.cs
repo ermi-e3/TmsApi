@@ -4,7 +4,7 @@ public class Student
 {
     public int Id { get; set; }
 
-    // surrogate primary key — internal, used by foreign keys 
+    // surrogate primary key — internal, used by foreign keys
     public required string RegistrationNumber { get; set; } // natural key — human-readable (uniqueness configured in Session 2)
     public required string Name { get; set; }
     public decimal GPA { get; set; }

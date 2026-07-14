@@ -1,94 +1,123 @@
+using Microsoft.EntityFrameworkCore;
+using TmsApi.Data;
 using TmsApi.Dtos;
-using TmsApi.Models;
+using TmsApi.Services;
 
 namespace TmsApi.Entities;
 
-public class StudentService : IStudentService
+public class StudentService(TmsDbContext context, ILogger<StudentService> _logger) : IStudentService
 {
     private readonly Dictionary<string, Student> _store = new();
 
-    private readonly ILogger<StudentService> _logger;
+    // {
+    //     _store.TryGetValue(id, out var student);
 
-    public StudentService(ILogger<StudentService> logger)
-    {
-        _logger = logger;
-    }
+    //     if (student is null)
+    //     {
+    //         _logger.LogWarning("Student {StudentId} not found", id);
+    //     }
 
-    public Task<Student> CreateAsync(
-        int id,
-        string registrationNumber,
-        string name,
-        decimal gpa,
-        bool isActive,
-        ICollection<Enrollment> enrollments
+    //     return Task.FromResult(student);
+    // }
+
+    public Task<StudentResponseDto?> GetByIdAsync(int id, CancellationToken ct) =>
+        context
+            .Students.AsNoTracking()
+            .Where(c => c.Id == id)
+            .Select(c => new StudentResponseDto(
+                c.Id,
+                c.RegistrationNumber,
+                c.Name,
+                c.Age,
+                c.GPA,
+                c.IsActive,
+                c.Enrollments.Count
+            ))
+            .FirstOrDefaultAsync(ct);
+
+    public async Task<PagedResponse<StudentResponseDto>> GetStudentAsync(
+        PagedRequest request,
+        CancellationToken ct
     )
     {
-        _logger.LogInformation("Student creation request received for {StudentId}", id);
+        IQueryable<Student> query = context.Students.AsNoTracking();
 
-        _logger.LogInformation("Current student count: {Count}", _store.Count);
-
-        // if (_store.TryGetValue(id, out var existing))
-        // {
-        //     _logger.LogWarning(
-        //         "Duplicate student creation attempt {StudentId}",
-        //         id);
-
-        //     return Task.FromResult(existing);
-        // }
-
-        var student = new Student
+        if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            Id = id,
-            Name = name,
-            RegistrationNumber = registrationNumber,
-            GPA = gpa,
-            IsActive = isActive,
-            Enrollments = enrollments,
+            query = query.Where(c =>
+                EF.Functions.ILike(c.Name, $"%{request.Search}%")
+                || EF.Functions.ILike(c.Name, $"%{request.Search}%")
+            );
+        }
+
+        var totalCount = await query.CountAsync(ct);
+
+        IQueryable<Student> sortedQuery = request.OrderBy switch
+        {
+            "Name" => request.Descending
+                ? query.OrderByDescending(c => c.Name)
+                : query.OrderBy(c => c.Name),
+
+            "GPA" => request.Descending
+                ? query.OrderByDescending(c => c.GPA)
+                : query.OrderBy(c => c.GPA),
+
+            "Age" => request.Descending
+                ? query.OrderByDescending(c => c.Age)
+                : query.OrderBy(c => c.Age),
+
+            _ => request.Descending
+                ? query.OrderByDescending(c => c.Name)
+                : query.OrderBy(c => c.Name),
         };
 
-        // _store[id] = student;
+        var items = await sortedQuery
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(c => new StudentResponseDto(
+                c.Id,
+                c.RegistrationNumber,
+                c.Name,
+                c.Age,
+                c.GPA,
+                c.IsActive,
+                c.Enrollments.Count
+            ))
+            .ToListAsync(ct);
 
-        _logger.LogInformation("Created student {StudentId}", id);
-
-        _logger.LogInformation("Student count after insert: {Count}", _store.Count);
-
-        return Task.FromResult(student);
-    }
-
-    public Task<Student?> GetByIdAsync(string id)
-    {
-        _store.TryGetValue(id, out var student);
-
-        if (student is null)
+        return new PagedResponse<StudentResponseDto>
         {
-            _logger.LogWarning("Student {StudentId} not found", id);
-        }
-
-        return Task.FromResult(student);
+            Items = items,
+            TotalCount = totalCount,
+            Page = request.Page,
+            PageSize = request.PageSize,
+        };
     }
 
-    public Task<IReadOnlyList<Student>> GetAllAsync(PagedRequest request, CancellationToken ct)
+    public async Task<StudentResponseDto> CreateAsync(
+        CreateStudentRequest request,
+        CancellationToken ct
+    )
     {
-        IReadOnlyList<Student> all = _store.Values.ToList();
+        var student = new Student
+        {
+            Name = request.Name,
+            RegistrationNumber = request.Name,
+            GPA = request.GPA,
+        };
+        context.Students.Add(student);
 
-        _logger.LogInformation("Retrieved all students Count={Count}", all.Count);
+        await context.SaveChangesAsync(ct);
 
-        return Task.FromResult(all);
+        _logger.LogInformation(
+            "Created course {CourseId} ({Code})",
+            student.Id,
+            student.RegistrationNumber
+        );
+
+        return (await GetByIdAsync(student.Id, ct))!;
     }
 
-    public Task<bool> DeleteAsync(string id)
-    {
-        var removed = _store.Remove(id);
-
-        if (removed)
-        {
-            _logger.LogInformation("Deleted student {StudentId}", id);
-        }
-        else
-        {
-            _logger.LogWarning("Delete failed student {StudentId} not found", id);
-        }
-
-        return Task.FromResult(removed);
-    }
+    public Task<bool> RegistrationNoExistsAsync(string registrationNo, CancellationToken ct) =>
+        context.Students.AsNoTracking().AnyAsync(c => c.RegistrationNumber == registrationNo, ct);
 }

@@ -1,10 +1,10 @@
-namespace TmsApi.Entities;
+// namespace TmsApi.Entities;
 
-public record CreateStudentRequest(
-    int Id,
-        string RegistrationNumber,
-    string Name,
-    decimal GPA,
+// public record CreateStudentRequest(
+//     int Id,
+//         string RegistrationNumber,
+//     string Name,
+//     decimal GPA,
 
-        bool IsActive,
-        ICollection<Enrollment> enrollments);
+//         bool IsActive,
+//         ICollection<Enrollment> enrollments);

@@ -2,117 +2,106 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Data;
 using TmsApi.Dtos;
-using TmsApi.Entities;
-using TmsApi.Models;
+using TmsApi.Services;
 
-namespace TmsApi.Services;
+namespace TmsApi.Controllers;
 
 [ApiController]
 [Route("api/students")]
-public class StudentsController(IStudentService studentService, TmsDbContext context)
+[Tags("Students")]
+[Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+public class StudentsController(IStudentService studentService, LinkGenerator linkGenerator)
     : ControllerBase
 {
-    [HttpGet("all-student-deleted")]
-    public async Task<IActionResult> GetAllStudents()
-    {
-        var students = await context.Students.IgnoreQueryFilters().ToListAsync();
-
-        return Ok(students);
-    }
-
-    [HttpGet("studentCount")]
-    public async Task<IActionResult> GetStudentsCount(CancellationToken cancellationToken = default)
-    {
-        // N + 1  pattern
-        // var students = await context.Students.AsNoTracking().ToListAsync(cancellationToken);
-        // foreach (var s in students)
-        // {
-        //     // TODO: Query enrollment count for this student inside the loop (use StudentId).
-        //     // This should produce 1 + N SQL statements. Count them in the log.
-
-        //     var count = await context
-        //         .Enrollments.AsNoTracking()
-        //         .CountAsync(e => e.StudentId == s.Id, cancellationToken);
-        //     Console.WriteLine($"{s.Name}: {count} enrollments");
-        // }
-
-        ////////////////////////////////////////////////////////////////////////////////////////
-
-        //  FIX: Single query with projection
-        var students = await context
-            .Students.AsNoTracking()
-            .Select(s => new { s.Name, EnrollmentCount = s.Enrollments.Count })
-            .ToListAsync(cancellationToken);
-
-        foreach (var r in students)
-            Console.WriteLine($"{r.Name}: {r.EnrollmentCount} enrollments");
-
-        ////////////////////////////////////////////////////////////////////////////////////////
-
-        // FIX: using include
-        // BUG: this throw JSON serialization error
-        // var students = await context
-        //     .Students.AsNoTracking()
-        //     .Include(s => s.Enrollments)
-        //     .ToListAsync(cancellationToken);
-
-        // foreach (var s in students)
-        //     Console.WriteLine($"{s.Name}: {s.Enrollments.Count} enrollments");
-
-        return Ok(students);
-    }
-
-    [HttpGet("pageStudents")]
-    public async Task<IActionResult> GetStudents(CancellationToken cancellationToken = default)
-    {
-        const int pageSize = 5,
-            pageNumber = 1;
-
-        var students = await context
-            .Students.OrderBy(s => s.Name)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return Ok(students);
-    }
-
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequest request, CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResponse<CourseResponseDto>), StatusCodes.Status200OK)]
+    [EndpointSummary("List Student with pagination")]
+    [EndpointDescription(
+        "Returns a paginated, optionally filtered listof TMS Student. PageSize is capped at 50."
+    )]
+    public async Task<IActionResult> GetCourses(
+        [FromQuery] PagedRequest request,
+        CancellationToken ct
+    )
     {
-        var students = await studentService.GetAllAsync(request, ct);
-
-        return Ok(students);
-    }
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
-    {
-        var student = await studentService.GetByIdAsync(id);
-
-        return student is not null ? Ok(student) : NotFound();
+        var result = await studentService.GetStudentAsync(request, ct);
+        return Ok(result);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(CreateStudentRequest request)
+    [ProducesResponseType(typeof(CourseResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Create a new Student")]
+    [EndpointDescription(
+        "Creates a Student with a unique Regidtration code. Returns 409 if the Regidtration code already exists."
+    )]
+    public async Task<IActionResult> CreateStudent(
+        CreateStudentRequest request,
+        CancellationToken ct
+    )
     {
-        var student = await studentService.CreateAsync(
-            request.Id,
-            request.RegistrationNumber,
-            request.Name,
-            request.GPA,
-            request.IsActive,
-            request.enrollments
-        );
+        // var result = await studentService.CreateAsync(request, ct);
+        // return CreatedAtAction(nameof(GetStudentById), new { id = result.Id }, result);
 
-        return CreatedAtAction(nameof(GetById), new { id = student.Id }, student);
+        if (await studentService.RegistrationNoExistsAsync(request.RegistrationNumber, ct))
+        {
+            return Conflict(
+                new ProblemDetails
+                {
+                    Title = "Student Registration code already exists",
+                    Detail =
+                        $"A Student with Registration code '{request.RegistrationNumber}' is already registered.",
+                    Status = StatusCodes.Status409Conflict,
+                }
+            );
+        }
+
+        var result = await studentService.CreateAsync(request, ct);
+
+        return CreatedAtAction(nameof(GetStudentById), new { id = result.Id }, result);
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(string id)
+    [HttpGet("{id:int}", Name = nameof(GetStudentById))]
+    [ProducesResponseType(typeof(CourseDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Get a student by ID")]
+    [EndpointDescription(
+        "Returns student details with HATEOAS links. Returns 404 if the student does not exist."
+    )]
+    public async Task<IActionResult> GetStudentById(int id, CancellationToken ct)
     {
-        var deleted = await studentService.DeleteAsync(id);
+        var student = await studentService.GetByIdAsync(id, ct);
 
-        return deleted ? NoContent() : NotFound();
+        if (student is null)
+        {
+            return NotFound();
+        }
+
+        var selfHref = linkGenerator.GetPathByName(HttpContext, nameof(GetStudentById), new { id });
+
+        var links = new List<LinkDto>
+        {
+            new(selfHref!, "self", "GET"),
+            new(selfHref!, "post", "POST"),
+            new(selfHref!, "update", "PUT"),
+            new(selfHref!, "delete", "DELETE"),
+        };
+
+        var detail = new StudentDetailDto
+        {
+            Id = student.Id,
+            RegistrationNumber = student.RegistrationNumber,
+            Name = student.Name,
+            Age = student.Age,
+            GPA = student.GPA,
+            IsActive = student.IsActive,
+            EnrollmentCount = student.EnrollmentCount,
+            Links = links,
+        };
+
+        return Ok(detail);
+        // throw new NotImplementedException();
     }
 }
