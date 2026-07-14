@@ -120,4 +120,64 @@ public class StudentService(TmsDbContext context, ILogger<StudentService> _logge
 
     public Task<bool> RegistrationNoExistsAsync(string registrationNo, CancellationToken ct) =>
         context.Students.AsNoTracking().AnyAsync(c => c.RegistrationNumber == registrationNo, ct);
+
+    public async Task<StudentResponseDto?> UpdateAsync(
+        int id,
+        UpdateStudentRequest request,
+        CancellationToken ct
+    )
+    {
+        var student = await context.Students.FirstOrDefaultAsync(s => s.Id == id, ct);
+
+        if (student is null)
+        {
+            return null;
+        }
+
+        student.RegistrationNumber = request.RegistrationNumber;
+        student.Name = request.Name;
+        student.GPA = request.GPA;
+        student.Age = request.Age;
+
+        await context.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Updated student {StudentId} ({RegistrationNumber})",
+            student.Id,
+            student.RegistrationNumber
+        );
+
+        return await GetByIdAsync(student.Id, ct);
+    }
+
+    public async Task<StudentResponseDto?> PatchAsync(
+        int id,
+        PatchStudentRequest request,
+        CancellationToken ct
+    )
+    {
+        var student = await context.Students.FirstOrDefaultAsync(s => s.Id == id, ct);
+
+        if (student is null)
+            return null;
+
+        if (request.Name is not null)
+            student.Name = request.Name;
+
+        if (request.RegistrationNumber is not null)
+            student.RegistrationNumber = request.RegistrationNumber;
+
+        if (request.GPA.HasValue)
+            student.GPA = request.GPA.Value;
+
+        if (request.Age.HasValue)
+            student.Age = request.Age.Value;
+
+        await context.SaveChangesAsync(ct);
+
+        return await GetByIdAsync(id, ct);
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct) =>
+        await context.Students.Where(s => s.Id == id).ExecuteDeleteAsync(ct) > 0;
 }

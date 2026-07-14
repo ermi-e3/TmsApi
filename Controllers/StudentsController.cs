@@ -102,6 +102,84 @@ public class StudentsController(IStudentService studentService, LinkGenerator li
         };
 
         return Ok(detail);
-        // throw new NotImplementedException();
+    }
+
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(StudentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Update a student")]
+    [EndpointDescription(
+        "Updates an existing student. Returns the updated student if successful. Returns 404 if the student does not exist."
+    )]
+    public async Task<IActionResult> UpdateStudent(
+        int id,
+        UpdateStudentRequest request,
+        CancellationToken ct
+    )
+    {
+        var student = await studentService.UpdateAsync(id, request, ct);
+
+        if (student is null)
+        {
+            return NotFound(
+                new ProblemDetails
+                {
+                    Title = "Student not found",
+                    Detail = $"No student with ID '{id}' was found.",
+                    Status = StatusCodes.Status404NotFound,
+                }
+            );
+        }
+
+        return Ok(student);
+    }
+
+    [HttpPatch("{id:int}")]
+    [ProducesResponseType(typeof(StudentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Partially update a student")]
+    [EndpointDescription("Updates only the provided student fields.")]
+    public async Task<IActionResult> PatchStudent(
+        int id,
+        PatchStudentRequest request,
+        CancellationToken ct
+    )
+    {
+        var student = await studentService.PatchAsync(id, request, ct);
+
+        if (student is null)
+        {
+            return NotFound(
+                new ProblemDetails
+                {
+                    Title = "Student not found",
+                    Detail = $"No student with ID '{id}' was found.",
+                    Status = StatusCodes.Status404NotFound,
+                }
+            );
+        }
+
+        return Ok(student);
+    }
+
+    [HttpDelete("{id:int}", Name = nameof(DeleteStudent))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Delete a student by ID")]
+    [EndpointDescription(
+        "Deletes a student record permanently. Returns 204 No Content on success or 404 if the student does not exist."
+    )]
+    public async Task<IActionResult> DeleteStudent(int id, CancellationToken ct)
+    {
+        var deleted = await studentService.DeleteAsync(id, ct);
+
+        if (!deleted)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
     }
 }

@@ -27,4 +27,13 @@ public interface IStudentService
         PagedRequest request,
         CancellationToken ct
     );
+
+    Task<StudentResponseDto?> UpdateAsync(
+        int id,
+        UpdateStudentRequest request,
+        CancellationToken ct
+    );
+
+    Task<StudentResponseDto?> PatchAsync(int id, PatchStudentRequest request, CancellationToken ct);        
+    Task<bool> DeleteAsync(int id, CancellationToken ct = default);
 }
