@@ -1,0 +1,31 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+using TmsApi.Infrastructure.Persistence;
+
+#nullable disable
+
+namespace TmsApi.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddStudentLastUpdated : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<DateTime>(
+                name: "LastUpdated",
+                table: "Students",
+                type: "timestamp with time zone",
+                nullable: false,
+                defaultValueSql: "NOW()");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "LastUpdated",
+                table: "Students");
+        }
+    }
+}
