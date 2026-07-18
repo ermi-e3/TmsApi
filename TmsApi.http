@@ -84,3 +84,7 @@ curl http://localhost:5022/api/students/S-001
 
 ###
 curl http://localhost:5022/api/test/translation-fail
+
+###
+curl -i https://localhost:5022/api/v1/courses 
+
