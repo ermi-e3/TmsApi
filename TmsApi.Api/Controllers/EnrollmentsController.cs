@@ -94,14 +94,42 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Enrollments.Queries;
+using TmsApi.Application.Interfaces;
 
 namespace TmsApi.Api.Controllers;
 
 [ApiController]
 [Route("api/v{version:apiVersion}/enrollments")]
 [ApiVersion("2.0")]
-public class EnrollmentsController(IMediator mediator) : ControllerBase
+public class EnrollmentsController(
+    IMediator mediator,
+    ICourseService courseService,
+    IEnrollmentService enrollmentService
+) : ControllerBase
 {
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var enrollments = await enrollmentService.GetAllAsync(ct);
+
+        return Ok(enrollments);
+    }
+
+    [HttpPost("{id:int}/approve")]
+    public async Task<IActionResult> Approve(int id, CancellationToken ct)
+    {
+        var enrollment = await enrollmentService.GetByIdAsync(id, ct);
+
+        if (enrollment is null)
+        {
+            return NotFound();
+        }
+
+        await enrollmentService.ApproveAsync(id, ct);
+
+        return NoContent();
+    }
+
     [HttpPost]
     public async Task<IActionResult> Enroll(EnrollStudentCommand command, CancellationToken ct)
     {
@@ -137,8 +165,4 @@ public class EnrollmentsController(IMediator mediator) : ControllerBase
         var schedule = await mediator.Send(new GetStudentScheduleQuery(studentId), ct);
         return Ok(schedule);
     }
-
-    
 }
-
-

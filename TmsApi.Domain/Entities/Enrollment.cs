@@ -10,6 +10,9 @@ public class Enrollment
     public bool IsArchived { get; set; } = false;
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
 
+    public string Status { get; set; } = "Pending";
+
     public Student Student { get; set; } = null!;
     public Course Course { get; set; } = null!;
 }
+

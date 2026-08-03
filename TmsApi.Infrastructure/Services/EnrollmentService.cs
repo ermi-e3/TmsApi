@@ -14,7 +14,15 @@ public class EnrollmentService(TmsDbContext context, ILogger<EnrollmentService> 
         context
             .Enrollments.AsNoTracking()
             .Where(e => e.Id == id && e.CourseId == courseId)
-            .Select(e => new EnrollmentResponseDto(e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
+            .Select(e => new EnrollmentResponseDto(
+                e.Id,
+                e.CourseId,
+                e.Course.Title,
+                e.StudentId,
+                e.Student.Name,
+                e.EnrolledAt,
+                e.Status
+            ))
             .FirstOrDefaultAsync(ct);
 
     public async Task<EnrollmentResponseDto> CreateAsync(
@@ -54,7 +62,60 @@ public class EnrollmentService(TmsDbContext context, ILogger<EnrollmentService> 
         return await context
             .Enrollments.AsNoTracking()
             .Where(e => e.CourseId == courseId)
-            .Select(e => new EnrollmentResponseDto(e.Id, e.CourseId, e.StudentId, e.EnrolledAt))
+            .Select(e => new EnrollmentResponseDto(
+                e.Id,
+                e.CourseId,
+                e.Course.Title,
+                e.StudentId,
+                e.Student.Name,
+                e.EnrolledAt,
+                e.Status
+            ))
+            .ToListAsync(ct);
+    }
+
+    public async Task ApproveAsync(int id, CancellationToken ct)
+    {
+        var enrollment = await context.Enrollments.FirstOrDefaultAsync(e => e.Id == id, ct);
+
+        if (enrollment is null)
+        {
+            return;
+        }
+
+        enrollment.Status = "Approved";
+
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task<EnrollmentResponseDto?> GetByIdAsync(int id, CancellationToken ct)
+    {
+        return await context
+            .Enrollments.Where(e => e.Id == id)
+            .Select(e => new EnrollmentResponseDto(
+                e.Id,
+                e.CourseId,
+                e.Course.Title,
+                e.StudentId,
+                e.Student.Name,
+                e.EnrolledAt,
+                e.Status
+            ))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<IEnumerable<EnrollmentResponseDto>> GetAllAsync(CancellationToken ct)
+    {
+        return await context
+            .Enrollments.Select(e => new EnrollmentResponseDto(
+                e.Id,
+                e.CourseId,
+                e.Course.Title,
+                e.StudentId,
+                e.Student.Name,
+                e.EnrolledAt,
+                e.Status
+            ))
             .ToListAsync(ct);
     }
 }

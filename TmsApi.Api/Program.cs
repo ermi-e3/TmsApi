@@ -11,17 +11,21 @@ using TmsApi.Application.Behaviors;
 using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Interfaces;
 using TmsApi.Application.Services;
-// using TmsApi.Data;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Persistence.Repositories;
 using TmsApi.Persistence;
 
-;
 
-// using TmsApi.Models;
-// using TmsApi.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        "AllowAngular",
+        policy => policy.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod()
+    );
+});
 
 builder.Services.AddDbContext<TmsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
@@ -46,37 +50,22 @@ builder.Services.AddControllers(options =>
 
 builder.Services.AddOpenApi(); // Required before MapOpenApi() will work
 
-// /// SWager
-// builder.Services.AddEndpointsApiExplorer();
 
-// builder.Services.AddSwaggerGen();
 
 builder.Services.AddAuthorization();
 
-// builder.Services.AddSingleton<EnrollmentWorker>();
 
-//BUG: make it work with scoped
-// builder.Services.AddSingleton<IEnrollmentService, EnrollmentService>();
-// FIX:
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 builder.Services.AddScoped<IStudentService, StudentService>();
 
-// builder.Services.AddSingleton<ICourseService, CourseService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 
-// builder.Services.AddEndpointsApiExplorer();
-// builder.Services.AddSwaggerGen();
 
-// builder
-//     .Services.AddOptions<PaymentOptions>()
-//     .BindConfiguration("Payments")
-//     .ValidateDataAnnotations()
-//     .ValidateOnStart();
 
 builder
     .Services.AddAuthentication("Training")
@@ -125,14 +114,13 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+app.UseCors("AllowAngular");
 
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
-    // Swagger
-    // app.UseSwagger();
-    // app.UseSwaggerUI();
+   
 
     // Scalar
     app.MapOpenApi();
