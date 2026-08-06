@@ -88,6 +88,20 @@ public class EnrollmentService(TmsDbContext context, ILogger<EnrollmentService> 
         await context.SaveChangesAsync(ct);
     }
 
+    public async Task RejectAsync(int id, CancellationToken ct)
+    {
+        var enrollment = await context.Enrollments.FirstOrDefaultAsync(e => e.Id == id, ct);
+
+        if (enrollment is null)
+        {
+            return;
+        }
+
+        enrollment.Status = "Rejected";
+
+        await context.SaveChangesAsync(ct);
+    }
+    
     public async Task<EnrollmentResponseDto?> GetByIdAsync(int id, CancellationToken ct)
     {
         return await context
@@ -118,4 +132,5 @@ public class EnrollmentService(TmsDbContext context, ILogger<EnrollmentService> 
             ))
             .ToListAsync(ct);
     }
+
 }

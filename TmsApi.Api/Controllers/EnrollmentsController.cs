@@ -110,22 +110,29 @@ public class EnrollmentsController(
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
-        var enrollments = await enrollmentService.GetAllAsync(ct);
+        var result = await mediator.Send(new GetAllEnrollmentsQuery(), ct);
 
-        return Ok(enrollments);
+        return Ok(result);
     }
 
     [HttpPost("{id:int}/approve")]
     public async Task<IActionResult> Approve(int id, CancellationToken ct)
     {
-        var enrollment = await enrollmentService.GetByIdAsync(id, ct);
+        var success = await mediator.Send(new ApproveEnrollmentCommand(id), ct);
 
-        if (enrollment is null)
-        {
+        if (!success)
             return NotFound();
-        }
 
-        await enrollmentService.ApproveAsync(id, ct);
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/reject")]
+    public async Task<IActionResult> Rejecte(int id, CancellationToken ct)
+    {
+        var success = await mediator.Send(new RejectEnrollmentCommand(id), ct);
+
+        if (!success)
+            return NotFound();
 
         return NoContent();
     }

@@ -13,6 +13,7 @@ public interface IEnrollmentService
     Task<IReadOnlyList<EnrollmentResponseDto>> GetByCourseAsync(int courseId, CancellationToken ct);
 
     Task ApproveAsync(int id, CancellationToken ct);
+    Task RejectAsync(int id, CancellationToken ct);
 
     Task<EnrollmentResponseDto?> GetByIdAsync(int id, CancellationToken ct);
 
