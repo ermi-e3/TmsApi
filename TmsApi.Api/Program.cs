@@ -11,11 +11,15 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Scalar.AspNetCore;
 using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Api.Filters;
+using TmsApi.Api.Hubs;
 using TmsApi.Api.Middlewares;
+using TmsApi.Api.Notifications;
 using TmsApi.Api.RateLimiting;
 using TmsApi.Application.Behaviors;
 using TmsApi.Application.Enrollments.Commands;
+using TmsApi.Application.Hubs;
 using TmsApi.Application.Interfaces;
+using TmsApi.Application.Notifications;
 using TmsApi.Application.Services;
 using TmsApi.Application.TranscriptJobModel;
 using TmsApi.Application.Transcripts;
@@ -28,6 +32,10 @@ using TmsApi.Infrastructure.Workers;
 using TmsApi.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<ITranscriptNotificationService, SignalRTranscriptNotificationService>();
+
+builder.Services.AddSignalR();
 
 builder.Services.AddSingleton<ITranscriptStatusStore, InMemoryTranscriptStatusStore>();
 
@@ -356,6 +364,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+
+app.MapHub<TmsHub>("/hubs/tms");
 app.UseCors("AllowAngular");
 
 app.UseExceptionHandler();
