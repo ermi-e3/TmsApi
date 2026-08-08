@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TmsApi.Application.Common.Exceptions;
 using TmsApi.Application.DTOs;
+using TmsApi.Application.Features.Courses.Commands.UpdateCourse;
 using TmsApi.Application.Interfaces;
 using TmsApi.Domain.Entities;
+using TmsApi.Infrastructure.Caching;
 using TmsApi.Infrastructure.Persistence;
 
 namespace TmsApi.Application.Services;
@@ -121,5 +124,61 @@ public class CourseService(TmsDbContext context, ILogger<CourseService> logger) 
             Page = request.Page,
             PageSize = request.PageSize,
         };
+    }
+
+    public async Task<Course?> GetByCodeAsync(string code, CancellationToken ct)
+    {
+        return await context
+            .Courses.Include(c => c.Enrollments)
+            .FirstOrDefaultAsync(c => c.Code == code, ct);
+    }
+
+    public async Task<List<Course>> GetAllAsync(CancellationToken ct)
+    {
+        return await context
+            .Courses.Include(c => c.Enrollments)
+            .OrderBy(c => c.Title)
+            .ToListAsync(ct);
+    }
+
+    // public async Task<CourseResponseDto> UpdateAsync(
+    //     int id,
+    //     UpdateCourseRequest request,
+    //     CancellationToken ct
+    // )
+    // {
+    //     var course =
+    //         await context.Courses.FirstOrDefaultAsync(c => c.Id == id, ct)
+    //         ?? throw new NotFoundException($"Course '{id}' was not found.");
+
+    //     course.Code = request.Code;
+    //     course.Title = request.Title;
+    //     course.MaxCapacity = request.MaxCapacity;
+
+    //     await context.SaveChangesAsync(ct);
+
+    //     logger.LogInformation("Updated course {CourseId} ({Code})", course.Id, course.Code);
+
+    //     return (await GetByIdAsync(course.Id, ct))!;
+    // }
+
+    public async Task<CourseResponseDto> UpdateAsync(
+        UpdateCourseCommand command,
+        CancellationToken ct
+    )
+    {
+        var course =
+            await context.Courses.FirstOrDefaultAsync(c => c.Id == command.Id, ct)
+            ?? throw new NotFoundException($"Course '{command.Id}' was not found.");
+
+        course.Code = command.Code;
+        course.Title = command.Title;
+        course.MaxCapacity = command.MaxCapacity;
+
+        await context.SaveChangesAsync(ct);
+
+        logger.LogInformation("Updated course {CourseId} ({Code})", course.Id, course.Code);
+
+        return (await GetByIdAsync(course.Id, ct))!;
     }
 }

@@ -3,6 +3,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Scalar.AspNetCore;
 using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Api.Filters;
@@ -13,9 +14,9 @@ using TmsApi.Application.Interfaces;
 using TmsApi.Application.Services;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Persistence.Repositories;
+using TmsApi.Infrastructure.Repositories;
+using TmsApi.Infrastructure.Services;
 using TmsApi.Persistence;
-
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,31 @@ builder.Services.AddCors(options =>
         policy => policy.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod()
     );
 });
+
+// NOTE: caching
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(10),
+        LocalCacheExpiration = TimeSpan.FromMinutes(2),
+    };
+});
+
+builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
+
+/*
+//NOTE: Production-only leave commented in lab
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+
+options.Configuration = builder.Configuration.GetConnectionStrin
+g("Redis");
+//
+options.InstanceName = "tms:";
+});
+builder.Services.AddHybridCache();
+*/
 
 builder.Services.AddDbContext<TmsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
@@ -50,10 +76,7 @@ builder.Services.AddControllers(options =>
 
 builder.Services.AddOpenApi(); // Required before MapOpenApi() will work
 
-
-
 builder.Services.AddAuthorization();
-
 
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
@@ -64,8 +87,6 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
-
-
 
 builder
     .Services.AddAuthentication("Training")
@@ -120,8 +141,6 @@ app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
-   
-
     // Scalar
     app.MapOpenApi();
     app.MapScalarApiReference(options =>

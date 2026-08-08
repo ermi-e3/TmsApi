@@ -88,3 +88,10 @@ curl http://localhost:5022/api/test/translation-fail
 ###
 curl -i https://localhost:5022/api/v1/courses 
 
+###
+curl -X PUT http://localhost:5022/api/v2/courses/1 \ -H "Content-Type: application/json" \ -d '{"title": "Updated title"}'
+
+###
+curl -X PUT http://localhost:5022/api/v2/courses/1 \
+-H "Content-Type: application/json" \
+-d "{\"code\":\"CSE-101\",\"title\":\"Updated title\",\"maxCapacity\":50}"
