@@ -33,4 +33,8 @@ public interface ICourseRepository
         CancellationToken ct
     );
     Task UpdateAsync(Course course, CancellationToken ct);
+
+    Task<List<Course>> SearchAsync(
+    string? term,
+    CancellationToken ct);
 }

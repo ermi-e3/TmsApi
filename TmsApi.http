@@ -95,3 +95,48 @@ curl -X PUT http://localhost:5022/api/v2/courses/1 \ -H "Content-Type: applicati
 curl -X PUT http://localhost:5022/api/v2/courses/1 \
 -H "Content-Type: application/json" \
 -d "{\"code\":\"CSE-101\",\"title\":\"Updated title\",\"maxCapacity\":50}"
+
+
+
+// 1..15 | ForEach-Object {$r = Invoke-WebRequest http://localhost:5022/api/v2/courses -SkipHttpErrorCheck "$_ : $($r.StatusCode) Retry-After=$($r.Headers.'Retry-After')" }
+
+// 1..15 | ForEach-Object {
+//     $r = Invoke-WebRequest -Uri "http://localhost:5022/api/v2/courses" -SkipHttpErrorCheck
+//     "$_ : $($r.StatusCode) Retry-After=$($r.Headers['Retry-After'])"
+// }
+
+// 1..15 | ForEach-Object {
+// $r = Invoke-WebRequest http://localhost:5022/api/v2/courses `-Headers @{ "X-Api-Key" = "tms-paid-001" } -SkipHttpErrorCheck
+// "$_ : $($r.StatusCode)"
+// }
+
+// 1..15 | ForEach-Object {
+//     $r = Invoke-WebRequest `
+//         -Uri "http://localhost:5022/api/v2/courses" `
+//         -Headers @{ "X-Api-Key" = "tms-paid-001" } `
+//         -SkipHttpErrorCheck
+
+//     "$_ : $($r.StatusCode)"
+// }
+
+
+// 1..30 | ForEach-Object -Parallel {
+//     Invoke-WebRequest `
+//         -Uri "http://localhost:5022/api/v2/transcripts" `
+//         -Method POST `
+//         -Body '{"studentId":1}' `
+//         -ContentType "application/json" `
+//         -SkipHttpErrorCheck | Out-Null
+// } -ThrottleLimit 3
+
+
+// 1..30 | ForEach-Object -Parallel {
+//     $r = Invoke-WebRequest `
+//         -Uri "http://localhost:5022/api/v2/transcripts" `
+//         -Method POST `
+//         -Body '{"studentId":1}' `
+//         -ContentType "application/json" `
+//         -SkipHttpErrorCheck
+
+//     "$_ : Status=$($r.StatusCode) Retry-After=$($r.Headers['Retry-After'])"
+// } -ThrottleLimit 3

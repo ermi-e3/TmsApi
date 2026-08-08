@@ -157,4 +157,20 @@ public class CourseRepository(TmsDbContext context) : ICourseRepository
     // {
     //     throw new NotImplementedException();
     // }
+
+    public async Task<List<Course>> SearchAsync(string? term, CancellationToken ct)
+    {
+        IQueryable<Course> query = context.Courses.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            term = term.Trim();
+
+            query = query.Where(c =>
+                EF.Functions.ILike(c.Code, $"%{term}%") || EF.Functions.ILike(c.Title, $"%{term}%")
+            );
+        }
+
+        return await query.OrderBy(c => c.Title).ToListAsync(ct);
+    }
 }
