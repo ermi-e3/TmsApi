@@ -96,6 +96,11 @@ curl -X PUT http://localhost:5022/api/v2/courses/1 \
 -H "Content-Type: application/json" \
 -d "{\"code\":\"CSE-101\",\"title\":\"Updated title\",\"maxCapacity\":50}"
 
+###
+curl -i -X POST http://localhost:5022/api/v2/enrollments \ -H "Content-Type: application/json" \ -d '{"studentId":7,"courseCode":"CSE-101"}'
+
+###
+curl -i -X POST http://localhost:5022/api/v2/transcripts \ -H "Content-Type: application/json" \ -H "Idempotency-Key: 11111111-2222-3333-4444-555555555555" \ -d '{"studentId": 1}'
 
 
 // 1..15 | ForEach-Object {$r = Invoke-WebRequest http://localhost:5022/api/v2/courses -SkipHttpErrorCheck "$_ : $($r.StatusCode) Retry-After=$($r.Headers.'Retry-After')" }

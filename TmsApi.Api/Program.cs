@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
 using FluentValidation;
@@ -17,16 +18,28 @@ using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Interfaces;
 using TmsApi.Application.Services;
 using TmsApi.Application.TranscriptJobModel;
+using TmsApi.Application.Transcripts;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Persistence.Repositories;
 using TmsApi.Infrastructure.Repositories;
 using TmsApi.Infrastructure.Services;
+using TmsApi.Infrastructure.Transcripts;
+using TmsApi.Infrastructure.Workers;
 using TmsApi.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// NOTE: RateLimiting
+builder.Services.AddSingleton<ITranscriptStatusStore, InMemoryTranscriptStatusStore>();
 
+builder.Services.AddSingleton(
+    Channel.CreateBounded<TranscriptRequest>(
+        new BoundedChannelOptions(100) { FullMode = BoundedChannelFullMode.Wait }
+    )
+);
+
+builder.Services.AddHostedService<TranscriptWorker>();
+
+// NOTE: RateLimiting
 builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
@@ -320,7 +333,7 @@ builder
     .Services.AddApiVersioning(options =>
     {
         options.DefaultApiVersion = new ApiVersion(1, 0);
-        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.AssumeDefaultVersionWhenUnspecified = false;
         options.ReportApiVersions = true;
         options.ApiVersionReader = new UrlSegmentApiVersionReader();
     })
