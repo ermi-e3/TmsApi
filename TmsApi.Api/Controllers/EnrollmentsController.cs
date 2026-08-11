@@ -92,8 +92,11 @@
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using TmsApi.Api.Hubs;
 using TmsApi.Application.Enrollments.Commands;
 using TmsApi.Application.Enrollments.Queries;
+using TmsApi.Application.Hubs;
 using TmsApi.Application.Interfaces;
 
 namespace TmsApi.Api.Controllers;
@@ -103,8 +106,7 @@ namespace TmsApi.Api.Controllers;
 [ApiVersion("2.0")]
 public class EnrollmentsController(
     IMediator mediator,
-    ICourseService courseService,
-    IEnrollmentService enrollmentService
+    IHubContext<TmsHub, ITmsHubClient> hubContext
 ) : ControllerBase
 {
     [HttpGet]
@@ -123,6 +125,8 @@ public class EnrollmentsController(
         if (!success)
             return NotFound();
 
+        await hubContext.Clients.All.ReceiveEnrollmentStatusUpdated(id, "Approved");
+        
         return NoContent();
     }
 
