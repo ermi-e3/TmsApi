@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Asp.Versioning;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -33,7 +34,35 @@ using TmsApi.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSingleton<ITranscriptNotificationService, SignalRTranscriptNotificationService>();
+var allowedOrigins =
+    builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? ["http://localhost:4200"];
+
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+});
+
+// Register the CORS policy in the Dependency Injection container
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        "TmsClient",
+        policy =>
+        {
+            policy
+                .WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials() // Vital for HttpOnly auth cookies in Session 2
+                .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
+        }
+    );
+});
+
+builder.Services.AddSingleton<
+    ITranscriptNotificationService,
+    SignalRTranscriptNotificationService
+>();
 
 builder.Services.AddSignalR();
 
@@ -316,6 +345,9 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<IGradeRepository, GradeRepository>();
+builder.Services.AddScoped<IAssessmentRepository, AssessmentRepository>();
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 
 builder
     .Services.AddAuthentication("Training")
@@ -340,8 +372,8 @@ builder.Services.AddOpenApi(
 builder
     .Services.AddApiVersioning(options =>
     {
-        options.DefaultApiVersion = new ApiVersion(1, 0);
-        options.AssumeDefaultVersionWhenUnspecified = false;
+        options.DefaultApiVersion = new ApiVersion(2, 0);
+        options.AssumeDefaultVersionWhenUnspecified = true;
         options.ReportApiVersions = true;
         options.ApiVersionReader = new UrlSegmentApiVersionReader();
     })
@@ -405,6 +437,7 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.UseRouting();
+app.UseCors("TmsClient");
 
 app.UseRateLimiter();
 
@@ -414,6 +447,31 @@ app.MapHealthChecks("/health/ready").DisableRateLimiting();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.Use(
+    async (context, next) =>
+    {
+        if (
+            context.User.Identity?.IsAuthenticated == true
+            || context.Request.Cookies.ContainsKey("tms_auth")
+        )
+        {
+            var antiforgery = context.RequestServices.GetRequiredService<IAntiforgery>();
+            var tokens = antiforgery.GetAndStoreTokens(context);
+            context.Response.Cookies.Append(
+                "XSRF-TOKEN",
+                tokens.RequestToken!,
+                new CookieOptions
+                {
+                    HttpOnly = false, // MUST be false so Angular JavaScript can read it!
+                    Secure = !builder.Environment.IsDevelopment(),
+                    SameSite = SameSiteMode.Strict,
+                }
+            );
+        }
+        await next(context);
+    }
+);
 
 app.MapControllers();
 

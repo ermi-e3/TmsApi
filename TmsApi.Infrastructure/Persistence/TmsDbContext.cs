@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Application.Interfaces;
-
 // using TmsApi.Application.Common.Interfaces;
 using TmsApi.Domain.Entities;
 
@@ -19,6 +18,7 @@ public class TmsDbContext(DbContextOptions<TmsDbContext> options)
     public DbSet<Assessment> Assessment => Set<Assessment>();
 
     public DbSet<Certificate> Certificate => Set<Certificate>();
+    public DbSet<Grade> Grades => Set<Grade>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
