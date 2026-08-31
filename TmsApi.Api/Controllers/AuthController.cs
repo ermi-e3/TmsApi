@@ -1,103 +1,12 @@
-// using Asp.Versioning;
-// using Microsoft.AspNetCore.Antiforgery;
-// using Microsoft.AspNetCore.Authorization;
-// using Microsoft.AspNetCore.Mvc;
-
-// namespace TmsApi.Api.Controllers;
-
-// [ApiController]
-// [Route("api/v{version:apiVersion}/auth")]
-// // [Route("api/{version:apiVersion}/auth")]
-// [ApiVersion("2.0")]
-// public class AuthController : ControllerBase
-// {
-//     private readonly IAntiforgery _antiforgery;
-
-//     public AuthController(IAntiforgery antiforgery)
-//     {
-//         _antiforgery = antiforgery;
-//     }
-
-//     // GET: /api/v2/auth/xsrf
-//     [AllowAnonymous]
-//     [HttpGet("xsrf")]
-//     public IActionResult GetXsrfToken()
-//     {
-//         Console.WriteLine("🔥 AuthController.GetXsrfToken() WAS CALLED");
-//         _antiforgery.GetAndStoreTokens(HttpContext);
-
-//         return NoContent();
-//     }
-
-//     // POST: /api/v2/auth/login
-//     [AllowAnonymous]
-//     [HttpPost("login")]
-//     public IActionResult Login(
-//         [FromBody] LoginRequest request,
-//         [FromServices] IWebHostEnvironment env
-//     )
-//     {
-//         // Demo credentials
-//         if (request.Username == "admin" && request.Password == "Password123!")
-//         {
-//             var dummyJwt = "header.payload.signature-demo-token";
-
-//             Response.Cookies.Append(
-//                 "tms_auth",
-//                 dummyJwt,
-//                 new CookieOptions
-//                 {
-//                     HttpOnly = true,
-
-//                     // HTTP is allowed during local development.
-//                     Secure = !env.IsDevelopment(),
-
-//                     // Works for same-site Angular/API development.
-//                     SameSite = SameSiteMode.Lax,
-
-//                     Expires = DateTimeOffset.UtcNow.AddHours(2),
-
-//                     Path = "/",
-//                 }
-//             );
-
-//             return Ok(new UserProfileDto("System Admin", "Admin"));
-//         }
-
-//         return Unauthorized(new { detail = "Invalid username or password." });
-//     }
-
-//     // GET: /api/v2/auth/me
-//     [HttpGet("me")]
-//     public IActionResult GetCurrentUser()
-//     {
-//         if (
-//             Request.Cookies.TryGetValue("tms_auth", out var token)
-//             && !string.IsNullOrWhiteSpace(token)
-//         )
-//         {
-//             return Ok(new UserProfileDto("System Admin", "Admin"));
-//         }
-
-//         return Unauthorized(new { detail = "Session expired or missing authentication cookie." });
-//     }
-
-//     // POST: /api/v2/auth/logout
-//     [HttpPost("logout")]
-//     public IActionResult Logout()
-//     {
-//         Response.Cookies.Delete("tms_auth", new CookieOptions { Path = "/" });
-
-//         return NoContent();
-//     }
-// }
-
 using Asp.Versioning;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TmsApi.Domain.Entities;
+using TmsApi.Infrastructure.Persistence;
+using TmsApi.Infrastructure.Services;
 
 namespace TmsApi.Api.Controllers;
 
@@ -108,35 +17,60 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<TmsUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly IAntiforgery _antiforgery;
+    private readonly TmsDbContext _context;
+    private readonly TokenService _tokenService;
 
     public AuthController(
         UserManager<TmsUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        IAntiforgery antiforgery
+        TmsDbContext context,
+        TokenService tokenService
     )
     {
         _userManager = userManager;
         _roleManager = roleManager;
-        _antiforgery = antiforgery;
+        _context = context;
+        _tokenService = tokenService;
     }
 
-    public record RegisterRequest(
-        string Email,
-        string Password,
-        string FirstName,
-        string LastName,
-        string Role
-    );
-
-    [AllowAnonymous]
-    [HttpGet("xsrf")]
-    public IActionResult GetXsrfToken()
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        Console.WriteLine("🔥 AuthController.GetXsrfToken() WAS CALLED");
-        _antiforgery.GetAndStoreTokens(HttpContext);
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user == null)
+            return Unauthorized(new { detail = "Invalid credentials." });
 
-        return NoContent();
+        if (await _userManager.IsLockedOutAsync(user))
+        {
+            return StatusCode(
+                423,
+                new { detail = "Account locked due to multiple failed login attempts." }
+            );
+        }
+
+        var validPassword = await _userManager.CheckPasswordAsync(user, request.Password);
+        if (!validPassword)
+        {
+            await _userManager.AccessFailedAsync(user);
+            return Unauthorized(new { detail = "Invalidcredentials." });
+        }
+
+        await _userManager.ResetAccessFailedCountAsync(user);
+        var roles = await _userManager.GetRolesAsync(user);
+        var accessToken = _tokenService.GenerateJwt(user, roles);
+        // Issue initial Refresh Token
+        var refreshToken = new RefreshToken
+        {
+            Token = Guid.NewGuid().ToString("N"),
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            IsUsed = false,
+            IsRevoked = false,
+        };
+
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+        return Ok(new { accessToken, refreshToken = refreshToken.Token });
     }
 
     [HttpPost("register")]
@@ -173,44 +107,69 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Registration successful." });
     }
 
-    public record LoginRequest(string Email, string Password);
+    public record RegisterRequest(
+        string Email,
+        string Password,
+        string FirstName,
+        string LastName,
+        string Role
+    );
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public record RefreshRequest(string RefreshToken);
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user == null)
-        {
-            return Unauthorized(new { detail = "Invalid credentials." });
-        }
+        var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(rt =>
+            rt.Token == request.RefreshToken
+        );
 
-        if (await _userManager.IsLockedOutAsync(user))
+        if (storedToken == null)
         {
-            return StatusCode(
-                423,
-                new
-                {
-                    detail = "Account locked due to multiple failed login attempts. Try again in 15 minutes.",
-                }
+            return Unauthorized(new { detail = "Invalid refresh token." });
+        }
+        // Theft Detection: If an ALREADY-USED token is submitted, revoke ALL tokens for this user!
+
+        if (storedToken.IsUsed)
+        {
+            var userTokens = await _context
+                .RefreshTokens.Where(rt => rt.UserId == storedToken.UserId)
+                .ToListAsync();
+            foreach (var t in userTokens)
+            {
+                t.IsRevoked = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return Unauthorized(
+                new { detail = "Token theft detected. All user sessions revoked." }
             );
         }
 
-        var validPassword = await _userManager.CheckPasswordAsync(user, request.Password);
-        if (!validPassword)
+        if (storedToken.IsRevoked || storedToken.ExpiresAt < DateTime.UtcNow)
         {
-            await _userManager.AccessFailedAsync(user);
-            return Unauthorized(new { detail = "Invalid credentials." });
+            return Unauthorized(new { detail = "Refresh token expired or revoked." });
         }
-        // Reset failed attempt counter on successful login
-        await _userManager.ResetAccessFailedCountAsync(user);
-        return Ok(
-            new
-            {
-                userId = user.Id,
-                email = user.Email,
-                firstName = user.FirstName,
-                lastName = user.LastName,
-            }
-        );
+        // Mark current token as used
+        storedToken.IsUsed = true;
+        // Issue brand-new Refresh Token pair
+        var newRefreshToken = new RefreshToken
+        {
+            Token = Guid.NewGuid().ToString("N"),
+            UserId = storedToken.UserId,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            IsUsed = false,
+            IsRevoked = false,
+        };
+
+        _context.RefreshTokens.Add(newRefreshToken);
+        await _context.SaveChangesAsync();
+        var user = await _userManager.FindByIdAsync(storedToken.UserId);
+
+        var roles = await _userManager.GetRolesAsync(user!);
+        var newAccessToken = _tokenService.GenerateJwt(user!, roles);
+        return Ok(new { accessToken = newAccessToken, refreshToken = newRefreshToken.Token });
     }
+
+    public record LoginRequest(string Email, string Password);
 }
