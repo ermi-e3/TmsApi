@@ -26,6 +26,9 @@ public class TmsDbContext : IdentityDbContext<TmsUser>
 
     public DbSet<Certificate> Certificate => Set<Certificate>();
     public DbSet<Grade> Grades => Set<Grade>();
+    // public DbSet<RefreshToken> GrRefreshTokensades => Set<RefreshToken>();
+
+     public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Threading.Channels;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
@@ -5,11 +6,13 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Api.Filters;
@@ -319,6 +322,30 @@ options.InstanceName = "tms:";
 builder.Services.AddHybridCache();
 */
 
+// NOTE: Authentication configuration
+builder.Services.AddScoped<TokenService>();
+builder
+    .Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+            ),
+        };
+    });
+
 builder.Services.AddDbContext<TmsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
 );
@@ -326,7 +353,6 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
 // builder.Services.AddScoped<IApplicationDbContext>(provider =>
 //     provider.GetRequiredService<TmsDbContext>()
 // );
-
 
 // NOTE: Identity configuration
 builder
