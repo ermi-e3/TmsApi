@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using TmsApi.Application.DTOs;
 using TmsApi.Application.Interfaces;
@@ -5,7 +6,9 @@ using TmsApi.Application.Interfaces;
 namespace TmsApi.Api.Controllers;
 
 [ApiController]
-[Route("api/students")]
+// [Route("api/students")]
+[ApiVersion("2.0")]
+[Route("api/v{version:apiVersion}/students")]
 [Tags("Students")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -58,7 +61,7 @@ public class StudentsController(IStudentService studentService, LinkGenerator li
 
         var result = await studentService.CreateAsync(request, ct);
 
-        return CreatedAtAction(nameof(GetStudentById), new { id = result.Id }, result);
+        return CreatedAtAction(nameof(GetStudentById), new { id = result.Id }, result); 
     }
 
     [HttpGet("{id:int}", Name = nameof(GetStudentById))]

@@ -181,4 +181,30 @@ public class CourseService(TmsDbContext context, ILogger<CourseService> logger) 
 
         return (await GetByIdAsync(course.Id, ct))!;
     }
+
+
+public async Task DeleteAsync(int id, CancellationToken ct)
+{
+    var course = await context.Courses
+        .FirstOrDefaultAsync(c => c.Id == id, ct);
+
+    if (course is null)
+    {
+        throw new KeyNotFoundException("Course not found.");
+    }
+
+    var hasEnrollments = await context.Enrollments
+        .AnyAsync(e => e.CourseId == id, ct);
+
+    if (hasEnrollments)
+    {
+        throw new InvalidOperationException(
+            "Cannot delete course: active student enrollments exist.");
+    }
+
+    context.Courses.Remove(course);
+
+    await context.SaveChangesAsync(ct);
+}
+
 }

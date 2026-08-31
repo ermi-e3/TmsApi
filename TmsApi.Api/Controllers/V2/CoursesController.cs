@@ -17,7 +17,7 @@ namespace TmsApi.Api.Controllers.V2;
 [ApiController]
 [Route("api/v{version:apiVersion}/courses")]
 [ApiVersion("2.0")]
-public class CoursesController(IMediator mediator) : ControllerBase // impliments IApplicationDbContext interface not using TmsDbContext
+public class CoursesController(IMediator mediator, ICourseService courseService) : ControllerBase // impliments IApplicationDbContext interface not using TmsDbContext
 {
     // [HttpGet]
     // public async Task<IActionResult> GetCourses(
@@ -123,7 +123,7 @@ public class CoursesController(IMediator mediator) : ControllerBase // impliment
     [HttpPut("{id:int}")]
     public async Task<ActionResult<CourseResponseDto>> Update(
         int id,
-        [FromBody]UpdateCourseRequest request,
+        [FromBody] UpdateCourseRequest request,
         CancellationToken ct
     )
     {
@@ -133,4 +133,30 @@ public class CoursesController(IMediator mediator) : ControllerBase // impliment
 
         return Ok(result);
     }
+    
+
+    [HttpDelete("{id:int}")]
+public async Task<IActionResult> Delete(
+    int id,
+    CancellationToken ct)
+{
+    try
+    {
+        await courseService.DeleteAsync(id, ct);
+
+        return NoContent();
+    }
+    catch (KeyNotFoundException)
+    {
+        return NotFound();
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Conflict(new
+        {
+            message = ex.Message
+        });
+    }
+}
+    
 }
