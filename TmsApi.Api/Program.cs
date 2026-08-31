@@ -5,6 +5,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ using TmsApi.Application.Notifications;
 using TmsApi.Application.Services;
 using TmsApi.Application.TranscriptJobModel;
 using TmsApi.Application.Transcripts;
+using TmsApi.Domain.Entities;
 using TmsApi.Infrastructure.Persistence;
 using TmsApi.Infrastructure.Persistence.Repositories;
 using TmsApi.Infrastructure.Repositories;
@@ -321,9 +323,27 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
 );
 
-builder.Services.AddScoped<IApplicationDbContext>(provider =>
-    provider.GetRequiredService<TmsDbContext>()
-);
+// builder.Services.AddScoped<IApplicationDbContext>(provider =>
+//     provider.GetRequiredService<TmsDbContext>()
+// );
+
+
+// NOTE: Identity configuration
+builder
+    .Services.AddIdentityCore<TmsUser>(options =>
+    {
+        // Enterprise Password Policy
+        options.Password.RequiredLength = 12;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireDigit = true;
+        options.Password.RequireNonAlphanumeric = true;
+        // Brute-Force Lockout Protection
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.AllowedForNewUsers = true;
+    })
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<TmsDbContext>();
 
 builder.Host.UseDefaultServiceProvider(options =>
 {
