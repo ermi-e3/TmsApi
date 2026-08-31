@@ -39,7 +39,13 @@ var allowedOrigins =
 
 builder.Services.AddAntiforgery(options =>
 {
+    // options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "XSRF-TOKEN";
     options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.HttpOnly = false;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.Path = "/";
 });
 
 // Register the CORS policy in the Dependency Injection container
@@ -349,9 +355,9 @@ builder.Services.AddScoped<IGradeRepository, GradeRepository>();
 builder.Services.AddScoped<IAssessmentRepository, AssessmentRepository>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 
-builder
-    .Services.AddAuthentication("Training")
-    .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>("Training", null);
+// builder
+//     .Services.AddAuthentication("Training")
+//     .AddScheme<AuthenticationSchemeOptions, TrainingAuthHandler>("Training", null);
 
 // NOTE: Versioning
 builder.Services.AddOpenApi(
@@ -393,12 +399,16 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavi
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-app.MapHub<TmsHub>("/hubs/tms");
-app.UseCors("AllowAngular");
+// app.MapHub<TmsHub>("/hubs/tms");
+// app.MapHub<TmsHub>("/hubs/tms").RequireCors("TmsClient");
+app.MapHub<TmsHub>("/hubs/tms").RequireCors("TmsClient");
+
+// app.UseCors("AllowAngular");
 
 app.UseExceptionHandler();
 
@@ -472,6 +482,8 @@ app.Use(
         await next(context);
     }
 );
+
+app.UseStatusCodePages(); // Converts 4xx/5xx responses into standard ProblemDetails payloads
 
 app.MapControllers();
 

@@ -61,7 +61,7 @@ public class StudentsController(IStudentService studentService, LinkGenerator li
 
         var result = await studentService.CreateAsync(request, ct);
 
-        return CreatedAtAction(nameof(GetStudentById), new { id = result.Id }, result);
+        return CreatedAtAction(nameof(GetStudentById), new { id = result.Id }, result); 
     }
 
     [HttpGet("{id:int}", Name = nameof(GetStudentById))]

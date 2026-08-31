@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TmsApi.Application.Interfaces;
 using TmsApi.Infrastructure.Persistence;
 
 namespace TmsApi.Api.Controllers.V1;
@@ -8,7 +9,7 @@ namespace TmsApi.Api.Controllers.V1;
 [ApiController]
 [Route("api/v{version:apiVersion}/courses")]
 [ApiVersion("1.0")]
-public class CoursesController(TmsDbContext context) : ControllerBase
+public class CoursesController(TmsDbContext context, ICourseService courseService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetCourses(
@@ -53,4 +54,31 @@ public class CoursesController(TmsDbContext context) : ControllerBase
             }
         );
     }
+
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(
+    int id,
+    CancellationToken ct)
+    {
+        try
+        {
+            await courseService.DeleteAsync(id, ct);
+
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+
 }

@@ -45,14 +45,17 @@
 //     }
 // }
 
-
+using Asp.Versioning;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace TmsApi.Api.Controllers;
 
 [ApiController]
-[Route("api/{version:apiVersion}/auth")]
+[Route("api/v{version:apiVersion}/auth")]
+// [Route("api/{version:apiVersion}/auth")]
+[ApiVersion("2.0")]
 public class AuthController : ControllerBase
 {
     private readonly IAntiforgery _antiforgery;
@@ -63,23 +66,26 @@ public class AuthController : ControllerBase
     }
 
     // GET: /api/v2/auth/xsrf
+    [AllowAnonymous]
     [HttpGet("xsrf")]
     public IActionResult GetXsrfToken()
     {
+        Console.WriteLine("🔥 AuthController.GetXsrfToken() WAS CALLED");
         _antiforgery.GetAndStoreTokens(HttpContext);
 
         return NoContent();
     }
 
     // POST: /api/v2/auth/login
+    [AllowAnonymous]
     [HttpPost("login")]
     public IActionResult Login(
         [FromBody] LoginRequest request,
-        [FromServices] IWebHostEnvironment env)
+        [FromServices] IWebHostEnvironment env
+    )
     {
         // Demo credentials
-        if (request.Username == "admin" &&
-            request.Password == "Password123!")
+        if (request.Username == "admin" && request.Password == "Password123!")
         {
             var dummyJwt = "header.payload.signature-demo-token";
 
@@ -98,60 +104,36 @@ public class AuthController : ControllerBase
 
                     Expires = DateTimeOffset.UtcNow.AddHours(2),
 
-                    Path = "/"
+                    Path = "/",
                 }
             );
 
-            return Ok(
-                new UserProfileDto(
-                    "System Admin",
-                    "Admin"
-                )
-            );
+            return Ok(new UserProfileDto("System Admin", "Admin"));
         }
 
-        return Unauthorized(
-            new
-            {
-                detail = "Invalid username or password."
-            }
-        );
+        return Unauthorized(new { detail = "Invalid username or password." });
     }
 
     // GET: /api/v2/auth/me
     [HttpGet("me")]
     public IActionResult GetCurrentUser()
     {
-        if (Request.Cookies.TryGetValue("tms_auth", out var token)
-            && !string.IsNullOrWhiteSpace(token))
+        if (
+            Request.Cookies.TryGetValue("tms_auth", out var token)
+            && !string.IsNullOrWhiteSpace(token)
+        )
         {
-            return Ok(
-                new UserProfileDto(
-                    "System Admin",
-                    "Admin"
-                )
-            );
+            return Ok(new UserProfileDto("System Admin", "Admin"));
         }
 
-        return Unauthorized(
-            new
-            {
-                detail = "Session expired or missing authentication cookie."
-            }
-        );
+        return Unauthorized(new { detail = "Session expired or missing authentication cookie." });
     }
 
     // POST: /api/v2/auth/logout
     [HttpPost("logout")]
     public IActionResult Logout()
     {
-        Response.Cookies.Delete(
-            "tms_auth",
-            new CookieOptions
-            {
-                Path = "/"
-            }
-        );
+        Response.Cookies.Delete("tms_auth", new CookieOptions { Path = "/" });
 
         return NoContent();
     }
