@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Domain.Entities;
 using TmsApi.Infrastructure.Persistence;
@@ -19,21 +20,35 @@ public class AuthController : ControllerBase
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly TmsDbContext _context;
     private readonly TokenService _tokenService;
+    private readonly IAntiforgery _antiforgery;
 
     public AuthController(
         UserManager<TmsUser> userManager,
         RoleManager<IdentityRole> roleManager,
         TmsDbContext context,
-        TokenService tokenService
+        TokenService tokenService,
+        IAntiforgery antiforgery
     )
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _context = context;
         _tokenService = tokenService;
+        _antiforgery = antiforgery;
+    }
+
+    [AllowAnonymous]
+    [HttpGet("xsrf")]
+    public IActionResult GetXsrfToken()
+    {
+        Console.WriteLine("🔥 AuthController.GetXsrfToken() WAS CALLED");
+        _antiforgery.GetAndStoreTokens(HttpContext);
+
+        return NoContent();
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("AuthLimiter")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
@@ -58,6 +73,7 @@ public class AuthController : ControllerBase
         await _userManager.ResetAccessFailedCountAsync(user);
         var roles = await _userManager.GetRolesAsync(user);
         var accessToken = _tokenService.GenerateJwt(user, roles);
+
         // Issue initial Refresh Token
         var refreshToken = new RefreshToken
         {
@@ -169,6 +185,33 @@ public class AuthController : ControllerBase
         var roles = await _userManager.GetRolesAsync(user!);
         var newAccessToken = _tokenService.GenerateJwt(user!, roles);
         return Ok(new { accessToken = newAccessToken, refreshToken = newRefreshToken.Token });
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] RefreshRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            return BadRequest(new { detail = "Refresh token is required." });
+        }
+
+        var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(rt =>
+            rt.Token == request.RefreshToken
+        );
+
+        if (storedToken == null)
+        {
+            // Don't reveal whether a token exists.
+            return NoContent();
+        }
+
+        storedToken.IsRevoked = true;
+        // storedToken.IsUsed = true;
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 
     public record LoginRequest(string Email, string Password);
