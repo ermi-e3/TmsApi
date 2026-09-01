@@ -7,6 +7,7 @@ using MediatR;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -14,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using Tms.Api.Authorization;
 using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Api.Filters;
 using TmsApi.Api.Hubs;
@@ -178,6 +180,16 @@ builder.Services.AddRateLimiter(options =>
             opt.TokensPerPeriod = 5;
             opt.ReplenishmentPeriod = TimeSpan.FromSeconds(10);
             opt.QueueLimit = 2;
+        }
+    );
+
+    options.AddFixedWindowLimiter(
+        "AuthLimiter",
+        opt =>
+        {
+            opt.PermitLimit = 5;
+            opt.Window = TimeSpan.FromMinutes(1);
+            opt.QueueLimit = 0;
         }
     );
 });
@@ -346,6 +358,15 @@ builder
         };
     });
 
+/// NOTE: Authorization configuration
+builder
+    .Services.AddAuthorizationBuilder()
+    .AddPolicy(
+        "CanEditCourse",
+        policy => policy.Requirements.Add(new CourseInstructorRequirement())
+    );
+builder.Services.AddSingleton<IAuthorizationHandler, CourseInstructorHandler>();
+
 builder.Services.AddDbContext<TmsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
 );
@@ -491,6 +512,32 @@ app.UseMiddleware<V1DeprecationMiddleware>();
 app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
+
+// Security Response Headers
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append(
+        "X-Content-Type-Options",
+        "nosniff"
+    );
+
+    context.Response.Headers.Append(
+        "X-Frame-Options",
+        "DENY"
+    );
+
+    context.Response.Headers.Append(
+        "Referrer-Policy",
+        "strict-origin-when-cross-origin"
+    );
+
+    context.Response.Headers.Append(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+    );
+
+    await next();
+});
 
 app.UseRouting();
 app.UseCors("TmsClient");

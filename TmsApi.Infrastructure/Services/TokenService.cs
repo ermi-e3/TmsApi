@@ -15,7 +15,7 @@ public class TokenService
     {
         _config = config;
     }
-
+    // public var Key = _config["Jwt:Key"];
     public string GenerateJwt(TmsUser user, IList<string> roles)
     {
         var claims = new List<Claim>
@@ -37,6 +37,7 @@ public class TokenService
             expires: DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"]!)),
             signingCredentials: creds
         );
+
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

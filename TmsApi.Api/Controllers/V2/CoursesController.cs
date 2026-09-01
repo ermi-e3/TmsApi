@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 // using Microsoft.EntityFrameworkCore;
 using TmsApi.Application.DTOs;
@@ -9,15 +10,22 @@ using TmsApi.Application.Features.Courses.Queries.GetCourse;
 using TmsApi.Application.Features.Courses.Queries.GetCourseById;
 using TmsApi.Application.Features.Courses.Queries.GetCourses;
 using TmsApi.Application.Interfaces;
+using TmsApi.Infrastructure.Persistence;
 
 // using TmsApi.Infrastructure.Persistence;
 
 namespace TmsApi.Api.Controllers.V2;
 
+[Authorize(Roles = "Instructor, Admin")]
 [ApiController]
 [Route("api/v{version:apiVersion}/courses")]
 [ApiVersion("2.0")]
-public class CoursesController(IMediator mediator, ICourseService courseService) : ControllerBase // impliments IApplicationDbContext interface not using TmsDbContext
+public class CoursesController(
+    IMediator mediator,
+    ICourseService courseService,
+    TmsDbContext _context,
+    IAuthorizationService _authorizationService
+) : ControllerBase // impliments IApplicationDbContext interface not using TmsDbContext
 {
     // [HttpGet]
     // public async Task<IActionResult> GetCourses(
@@ -120,43 +128,54 @@ public class CoursesController(IMediator mediator, ICourseService courseService)
         return CreatedAtAction(nameof(GetById), new { id = course.Id }, course);
     }
 
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult<CourseResponseDto>> Update(
-        int id,
-        [FromBody] UpdateCourseRequest request,
-        CancellationToken ct
-    )
+    // [HttpPut("{id:int}")]
+    // public async Task<ActionResult<CourseResponseDto>> Update(
+    //     int id,
+    //     [FromBody] UpdateCourseRequest request,
+    //     CancellationToken ct
+    // )
+    // {
+    //     var command = new UpdateCourseCommand(id, request.Code, request.Title, request.MaxCapacity);
+
+    //     var result = await mediator.Send(command, ct);
+
+    //     return Ok(result);
+    // }
+
+    public record UpdateCourseDto(string Title);
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateCourse(int id, [FromBody] UpdateCourseDto dto)
     {
-        var command = new UpdateCourseCommand(id, request.Code, request.Title, request.MaxCapacity);
-
-        var result = await mediator.Send(command, ct);
-
-        return Ok(result);
-    }
-    
-
-    [HttpDelete("{id:int}")]
-public async Task<IActionResult> Delete(
-    int id,
-    CancellationToken ct)
-{
-    try
-    {
-        await courseService.DeleteAsync(id, ct);
-
+        var course = await _context.Courses.FindAsync(id);
+        if (course == null)
+            return NotFound();
+        var authResult = await _authorizationService.AuthorizeAsync(User, course, "CanEditCourse");
+        if (!authResult.Succeeded)
+        {
+            return Forbid(); // 403 Forbidden when caller doesn't own the resource
+        }
+        course.Title = dto.Title;
+        await _context.SaveChangesAsync();
         return NoContent();
     }
-    catch (KeyNotFoundException)
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        return NotFound();
-    }
-    catch (InvalidOperationException ex)
-    {
-        return Conflict(new
+        try
         {
-            message = ex.Message
-        });
+            await courseService.DeleteAsync(id, ct);
+
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
-}
-    
 }
