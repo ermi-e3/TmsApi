@@ -514,30 +514,23 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 // Security Response Headers
-app.Use(async (context, next) =>
-{
-    context.Response.Headers.Append(
-        "X-Content-Type-Options",
-        "nosniff"
-    );
+app.Use(
+    async (context, next) =>
+    {
+        context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
 
-    context.Response.Headers.Append(
-        "X-Frame-Options",
-        "DENY"
-    );
+        context.Response.Headers.Append("X-Frame-Options", "DENY");
 
-    context.Response.Headers.Append(
-        "Referrer-Policy",
-        "strict-origin-when-cross-origin"
-    );
+        context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
 
-    context.Response.Headers.Append(
-        "Content-Security-Policy",
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
-    );
+        context.Response.Headers.Append(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+        );
 
-    await next();
-});
+        await next();
+    }
+);
 
 app.UseRouting();
 app.UseCors("TmsClient");
@@ -581,3 +574,5 @@ app.UseStatusCodePages(); // Converts 4xx/5xx responses into standard ProblemDet
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }
